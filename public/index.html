@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Transcription - Class Notes PWA</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Page-specific styles */
+    .main-container {
+      padding: var(--space-6);
+      min-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-8);
+      padding: var(--space-6);
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text-primary), var(--primary-400));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .user-info {
+      color: var(--text-muted);
+      font-size: var(--text-sm);
+    }
+
+    .google-integration {
+      margin-bottom: var(--space-6);
+    }
+
+    .integration-card {
+      padding: var(--space-6);
+    }
+
+    .integration-header {
+      display: flex;
+      align-items: center;
+      justify-content: between;
+      margin-bottom: var(--space-4);
+    }
+
+    .integration-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .integration-status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+
+    .class-input-section {
+      margin-bottom: var(--space-6);
+    }
+
+    .class-input-card {
+      text-align: center;
+      padding: var(--space-6);
+    }
+
+    .class-input-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--space-4);
+    }
+
+    .class-input {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .controls-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .controls-card {
+      text-align: center;
+      padding: var(--space-8);
+    }
+
+    .control-buttons {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    .record-btn {
+      position: relative;
+      background: linear-gradient(135deg, var(--success), #059669);
+      padding: var(--space-4) var(--space-8);
+      font-size: var(--text-lg);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      transition: all var(--duration-normal) ease;
+    }
+
+    .record-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-xl), 0 0 30px rgba(16, 185, 129, 0.4);
+    }
+
+    .record-btn.recording {
+      animation: pulse 2s infinite;
+      background: linear-gradient(135deg, var(--error), #dc2626);
+    }
+
+    .pause-btn {
+      background: linear-gradient(135deg, var(--warning), #d97706);
+    }
+
+    .stop-btn {
+      background: linear-gradient(135deg, var(--error), #dc2626);
+    }
+
+    .status-section {
+      margin-bottom: var(--space-6);
+      text-align: center;
+    }
+
+    .status-display {
+      padding: var(--space-4);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(8px);
+      font-size: var(--text-sm);
+      color: var(--primary-400);
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .transcript-section {
+      margin-bottom: var(--space-6);
+    }
+
+    .transcript-card {
+      min-height: 400px;
+      max-height: 600px;
+      overflow-y: auto;
+      position: relative;
+      padding: var(--space-6);
+    }
+
+    .transcript-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+    }
+
+    .transcript-empty-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+      opacity: 0.5;
+    }
+
+    .speaker-label {
+      font-weight: 600;
+      color: var(--primary-400);
+      margin-top: var(--space-4);
+      margin-bottom: var(--space-2);
+      font-size: var(--text-sm);
+    }
+
+    .transcript-text {
+      margin-bottom: var(--space-3);
+      line-height: 1.7;
+    }
+
+    .transcript-partial {
+      opacity: 0.7;
+      font-style: italic;
+      color: var(--warning);
+    }
+
+    .transcript-final {
+      opacity: 1;
+      color: var(--text-primary);
+    }
+
+    .notes-section {
+      display: none;
+    }
+
+    .notes-card {
+      padding: var(--space-6);
+    }
+
+    .notes-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      margin-bottom: var(--space-6);
+    }
+
+    .notes-content h3 {
+      color: var(--warning);
+      margin-top: var(--space-6);
+      margin-bottom: var(--space-3);
+      font-size: var(--text-lg);
+    }
+
+    .notes-content ul {
+      margin: 0;
+      padding-left: var(--space-6);
+    }
+
+    .notes-content li {
+      margin-bottom: var(--space-2);
+      line-height: 1.6;
+    }
+
+    .generating-notes {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      color: var(--text-muted);
+      font-style: italic;
+      padding: var(--space-8);
+    }
+
+    .warning-display {
+      color: var(--warning);
+      text-align: center;
+      margin-top: var(--space-4);
+      font-size: var(--text-sm);
+      padding: var(--space-3);
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--radius-lg);
+    }
+
+    /* Recording pulse animation */
+    @keyframes recordingPulse {
+      0%, 100% {
+        box-shadow: var(--shadow-lg), 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+      70% {
+        box-shadow: var(--shadow-lg), 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+    }
+
+    .record-btn.recording {
+      animation: recordingPulse 2s infinite;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        gap: var(--space-4);
+        text-align: center;
+      }
+
+      .header-actions {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .control-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .record-btn,
+      .pause-btn,
+      .stop-btn {
+        width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container container">
+    <div class="header">
+      <h1 class="header-title">
+        <span>🎤</span>
+        Live Transcription
+      </h1>
+      <div class="header-actions">
+        <span class="user-info" id="userInfo">Loading...</span>
+        <button class="btn btn-error btn-sm" onclick="logout()">Sign Out</button>
+      </div>
+    </div>
+    
+    <div class="google-integration">
+      <div class="glass-card integration-card">
+        <div class="integration-header">
+          <h3 class="integration-title">
+            <span>☁️</span>
+            Google Docs Integration
+          </h3>
+        </div>
+        <div class="integration-status mb-4">
+          <span id="googleStatus">Checking connection...</span>
+          <div class="status-dot error" id="googleIndicator"></div>
+        </div>
+        <div class="flex gap-4 mb-4">
+          <button class="btn btn-primary btn-sm" id="googleConnectBtn" onclick="connectGoogle()" style="display:none">
+            Connect Google Drive
+          </button>
+          <button class="btn btn-error btn-sm" id="googleDisconnectBtn" onclick="disconnectGoogle()" style="display:none">
+            Disconnect
+          </button>
+        </div>
+        <p class="text-sm text-muted">
+          Connect your Google account to automatically save formatted class notes to Google Docs.
+        </p>
+      </div>
+    </div>
+    
+    <div class="class-input-section">
+      <div class="glass-card class-input-card">
+        <div class="class-input-label">
+          <span>📚</span>
+          Class Name
+        </div>
+        <div class="form-floating class-input">
+          <input type="text" id="classTitle" class="form-input" placeholder="e.g., Introduction to Psychology, Math 101, History Lecture..." maxlength="100">
+          <label for="classTitle" class="form-label">Enter class name</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls-section">
+      <div class="glass-card controls-card">
+        <div class="control-buttons">
+          <button id="btnRecord" class="btn record-btn">
+            <span>🔴</span>
+            Record
+          </button>
+          <button id="btnPause" class="btn pause-btn" disabled>
+            <span>⏸️</span>
+            Pause
+          </button>
+          <button id="btnStop" class="btn stop-btn" disabled>
+            <span>⏹️</span>
+            Stop
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="status-section">
+      <div class="status-display" id="status">
+        Click Record to start transcription
+      </div>
+    </div>
+    
+    <div class="transcript-section">
+      <div class="glass-card transcript-card" id="transcript">
+        <div class="transcript-empty">
+          <div class="transcript-empty-icon">🎙️</div>
+          <div>Transcript will appear here when you start recording...</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="notes-section" id="notes">
+      <div class="glass-card notes-card">
+        <h2 class="notes-title">
+          <span>📝</span>
+          Class Notes
+        </h2>
+        <div id="notes-content" class="notes-content"></div>
+      </div>
+    </div>
+    
+    <div id="warnings" class="warning-display" style="display:none"></div>
+  </div>
+
+  <script src="/main.js"></script>
+</body>
+</html>

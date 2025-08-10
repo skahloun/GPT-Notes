@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Class Notes PWA</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="theme-color" content="#0f172a">
+  <style>
+    body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; background:#0f172a; color:#e2e8f0}
+    header{padding:16px; background:#111827; position:sticky; top:0; z-index:10}
+    .container{padding:16px; max-width:900px; margin:0 auto}
+    label{display:block; margin-bottom:8px}
+    input, button{padding:10px; border-radius:8px; border:1px solid #1f2937; background:#111827; color:#e2e8f0}
+    input{width:100%; box-sizing:border-box}
+    button{cursor:pointer; margin-right:8px}
+    button.primary{background:#2563eb}
+    .row{display:flex; gap:12px; flex-wrap:wrap}
+    .card{background:#0b1220; border:1px solid #1f2937; border-radius:12px; padding:16px; margin-top:16px}
+    #live{height:220px; overflow:auto; white-space:pre-wrap; background:#0a0f1e; border-radius:8px; padding:12px; border:1px dashed #334155}
+    .speaker{font-weight:600; color:#93c5fd}
+    .status{font-size:12px; opacity:.8}
+    .warning{color:#fbbf24}
+    .success{color:#22c55e}
+    .muted{opacity:.7}
+    .grid{display:grid; grid-template-columns:1fr; gap:12px}
+    @media (min-width:780px){ .grid{grid-template-columns:1fr 1fr;} }
+    .session-item{display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #1f2937}
+    a{color:#93c5fd}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <strong>Class Notes</strong> <span class="muted">PWA</span>
+    </div>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="row">
+        <div style="flex:1">
+          <label>Class Title</label>
+          <input id="classTitle" placeholder="e.g., Calculus 101">
+        </div>
+        <div style="flex:1">
+          <label>Email (for demo auth)</label>
+          <input id="email" placeholder="you@example.com">
+        </div>
+        <div style="flex:1">
+          <label>Password</label>
+          <input id="password" type="password" placeholder="********">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnRegister">Register</button>
+        <button id="btnLogin" class="primary">Login</button>
+        <button id="btnGoogle">Connect Google</button>
+      </div>
+      <div class="status" id="authStatus"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row">
+          <button id="btnStart" class="primary">Start Recording</button>
+          <button id="btnStop">Stop</button>
+        </div>
+        <div class="status" id="status"></div>
+        <div id="live"></div>
+        <div class="status warning" id="warnings"></div>
+      </div>
+      <div class="card">
+        <h3>Past Sessions</h3>
+        <div>
+          <input id="search" placeholder="Search by class or date (YYYY-MM-DD)">
+        </div>
+        <div id="sessions"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/main.js"></script>
+</body>
+</html>

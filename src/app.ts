@@ -1,0 +1,673 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
+import http from "http";
+import path from "path";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import { WebSocketServer } from "ws";
+import { v4 as uuidv4 } from "uuid";
+import { Readable } from "stream";
+import jwt from "jsonwebtoken";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+
+import { AwsTranscribeService } from "./services/aws-transcribe.service";
+import { AIAnalyzer } from "./services/ai-analyzer";
+import { GoogleDocsService } from "./services/google-docs.service";
+import { notesToDocText } from "./utils/export-utils";
+import { usageTracker } from "./services/usage-tracker";
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server, path: "/ws/audio" });
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: "20mb" }));
+app.use(cookieParser());
+
+const PORT = parseInt(process.env.PORT || "6001");
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+
+// --- DB setup (sqlite) ---
+let db: any;
+(async () => {
+  db = await open({
+    filename: path.join(process.cwd(), "class-notes.db"),
+    driver: sqlite3.Database
+  });
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE,
+      password TEXT,
+      tier TEXT DEFAULT 'free',
+      google_tokens TEXT,
+      is_admin INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_login TEXT,
+      total_sessions INTEGER DEFAULT 0,
+      total_aws_cost REAL DEFAULT 0.0,
+      total_openai_cost REAL DEFAULT 0.0
+    );
+  `);
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      userId TEXT,
+      classTitle TEXT,
+      dateISO TEXT,
+      transcriptPath TEXT,
+      docUrl TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
+      duration_minutes REAL DEFAULT 0,
+      aws_cost REAL DEFAULT 0.0,
+      openai_cost REAL DEFAULT 0.0,
+      transcript_length INTEGER DEFAULT 0
+    );
+  `);
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS usage_logs (
+      id TEXT PRIMARY KEY,
+      userId TEXT,
+      sessionId TEXT,
+      service TEXT,
+      operation TEXT,
+      cost REAL,
+      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+      details TEXT
+    );
+  `);
+})();
+
+// --- Auth (very simple demo) ---
+app.post("/api/register", async (req, res) => {
+  const { email, password } = req.body;
+  const id = uuidv4();
+  try {
+    await db.run("INSERT INTO users(id,email,password,tier) VALUES(?,?,?,?)", [id, email, password, "free"]);
+    res.json({ ok: true });
+  } catch (e:any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  const row = await db.get("SELECT * FROM users WHERE email=? AND password=?", [email, password]);
+  if (!row) return res.status(401).json({ error: "Invalid credentials" });
+  
+  // Update last login
+  await db.run("UPDATE users SET last_login=? WHERE id=?", [new Date().toISOString(), row.id]);
+  
+  const token = jwt.sign({ uid: row.id, tier: row.tier }, JWT_SECRET, { expiresIn: "7d" });
+  res.json({ token });
+});
+
+// --- Admin Authentication ---
+app.post("/api/admin/login", async (req, res) => {
+  const { username, password } = req.body;
+  
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Invalid admin credentials" });
+  }
+  
+  const adminToken = jwt.sign({ isAdmin: true, username: ADMIN_USERNAME }, JWT_SECRET, { expiresIn: "24h" });
+  res.json({ token: adminToken });
+});
+
+function authMiddleware(req:any, res:any, next:any) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "No token" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+function adminMiddleware(req:any, res:any, next:any) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return res.status(401).json({ error: "No admin token" });
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    req.admin = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid admin token" });
+  }
+}
+
+// --- Google OAuth ---
+const googleService = new GoogleDocsService(
+  process.env.GOOGLE_CLIENT_ID || "",
+  process.env.GOOGLE_CLIENT_SECRET || "",
+  process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/auth/google/callback"
+);
+
+app.get("/auth/google", async (req:any, res) => {
+  const url = googleService.generateAuthUrl([
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/documents"
+  ]);
+  res.redirect(url);
+});
+
+app.get("/auth/google/callback", async (req:any, res) => {
+  const code = req.query.code as string;
+  if (!code) return res.status(400).send("Missing code");
+  const tokens = await googleService.setCredentialsFromCode(code);
+  
+  // For demo mode, automatically save tokens to demo-user
+  try {
+    await db.run("UPDATE users SET google_tokens=? WHERE id=?", [JSON.stringify(tokens), "demo-user"]);
+    res.send("✅ Google connected successfully! You can now close this tab and test recording. Notes will be automatically saved to Google Docs.");
+  } catch (e: any) {
+    console.error("Error saving tokens:", e);
+    res.status(500).send("Error saving Google tokens: " + e.message);
+  }
+});
+
+app.post("/api/save-google-tokens", authMiddleware, async (req:any, res) => {
+  const tokens = req.body.tokens;
+  await db.run("UPDATE users SET google_tokens=? WHERE id=?", [JSON.stringify(tokens), req.user.uid]);
+  res.json({ ok: true });
+});
+
+// --- Token verification ---
+app.get("/api/verify-token", authMiddleware, (req: any, res) => {
+  res.json({ valid: true, user: req.user });
+});
+
+// --- User info ---
+app.get("/api/user-info", authMiddleware, async (req: any, res) => {
+  try {
+    const row = await db.get("SELECT email FROM users WHERE id=?", [req.user.uid]);
+    if (row) {
+      res.json({ email: row.email });
+    } else {
+      res.status(404).json({ error: "User not found" });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Admin API Endpoints ---
+app.get("/api/admin/users", adminMiddleware, async (req: any, res) => {
+  try {
+    const users = await db.all(`
+      SELECT 
+        id, email, tier, created_at, last_login, total_sessions, 
+        total_aws_cost, total_openai_cost, is_admin
+      FROM users 
+      ORDER BY created_at DESC
+    `);
+    res.json(users);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete("/api/admin/users/:userId", adminMiddleware, async (req: any, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Admin users can delete any user account
+    
+    // Delete user data
+    await db.run("DELETE FROM sessions WHERE userId=?", [userId]);
+    await db.run("DELETE FROM usage_logs WHERE userId=?", [userId]);
+    await db.run("DELETE FROM users WHERE id=?", [userId]);
+    
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/admin/stats", adminMiddleware, async (req: any, res) => {
+  try {
+    const stats = await db.get(`
+      SELECT 
+        COUNT(*) as total_users,
+        SUM(total_sessions) as total_sessions,
+        SUM(total_aws_cost) as total_aws_cost,
+        SUM(total_openai_cost) as total_openai_cost
+      FROM users
+    `);
+    
+    const recentUsers = await db.get(`
+      SELECT COUNT(*) as recent_users 
+      FROM users 
+      WHERE created_at > datetime('now', '-7 days')
+    `);
+    
+    const activeUsers = await db.get(`
+      SELECT COUNT(*) as active_users 
+      FROM users 
+      WHERE last_login > datetime('now', '-7 days')
+    `);
+    
+    res.json({
+      ...stats,
+      recent_users: recentUsers.recent_users,
+      active_users: activeUsers.active_users
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/admin/usage/:userId", adminMiddleware, async (req: any, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const sessions = await db.all(`
+      SELECT * FROM sessions 
+      WHERE userId=? 
+      ORDER BY createdAt DESC 
+      LIMIT 50
+    `, [userId]);
+    
+    const usageLogs = await db.all(`
+      SELECT * FROM usage_logs 
+      WHERE userId=? 
+      ORDER BY timestamp DESC 
+      LIMIT 100
+    `, [userId]);
+    
+    res.json({ sessions, usageLogs });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Google Auth Status API ---
+app.get("/api/google-status", async (req: any, res) => {
+  try {
+    let userId = "demo-user"; // Default for demo mode
+    
+    // Check if authenticated user
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    if (token && token !== "demo-token") {
+      try {
+        const payload: any = jwt.verify(token, JWT_SECRET);
+        userId = payload.uid;
+      } catch (e) {
+        // Fall back to demo user if token is invalid
+      }
+    }
+    
+    const row = await db.get("SELECT google_tokens FROM users WHERE id=?", [userId]);
+    const connected = !!(row?.google_tokens);
+    res.json({ connected });
+  } catch (e: any) {
+    console.error("Error checking Google status:", e);
+    res.json({ connected: false });
+  }
+});
+
+app.post("/api/google-disconnect", async (req: any, res) => {
+  try {
+    let userId = "demo-user"; // Default for demo mode
+    
+    // Check if authenticated user
+    const auth = req.headers.authorization || "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    if (token && token !== "demo-token") {
+      try {
+        const payload: any = jwt.verify(token, JWT_SECRET);
+        userId = payload.uid;
+      } catch (e) {
+        // Fall back to demo user if token is invalid
+      }
+    }
+    
+    await db.run("UPDATE users SET google_tokens=NULL WHERE id=?", [userId]);
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error("Error disconnecting Google:", e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Static ---
+app.use(express.static(path.join(process.cwd(), "public")));
+
+// --- Cost calculation utilities ---
+function calculateAWSTranscribeCost(durationMinutes: number): number {
+  // AWS Transcribe pricing: $0.024 per minute (standard)
+  return durationMinutes * 0.024;
+}
+
+function calculateOpenAICost(inputTokens: number, outputTokens: number): number {
+  // GPT-4 pricing: $0.03/1K input tokens, $0.06/1K output tokens
+  const inputCost = (inputTokens / 1000) * 0.03;
+  const outputCost = (outputTokens / 1000) * 0.06;
+  return inputCost + outputCost;
+}
+
+function estimateTokens(text: string): number {
+  // Rough estimation: ~4 characters per token
+  return Math.ceil(text.length / 4);
+}
+
+async function logUsage(userId: string, sessionId: string, service: string, operation: string, cost: number, details: string) {
+  try {
+    await db.run(
+      "INSERT INTO usage_logs(id, userId, sessionId, service, operation, cost, details) VALUES(?,?,?,?,?,?,?)",
+      [uuidv4(), userId, sessionId, service, operation, cost, details]
+    );
+  } catch (e) {
+    console.error("Failed to log usage:", e);
+  }
+}
+
+// --- WebSocket: audio streaming to AWS Transcribe ---
+const awsService = new AwsTranscribeService(process.env.AWS_REGION || "us-east-1");
+const aiAnalyzer = new AIAnalyzer(process.env.OPENAI_API_KEY || "");
+
+type ClientCtx = {
+  userId: string;
+  sessionId: string;
+  classTitle: string;
+  dateISO: string;
+  transcriptParts: { partial: boolean; text: string; speaker?: string }[];
+  pcmStream: Readable;
+  startTime: number;
+  awsBytes: number;
+};
+
+wss.on("connection", (ws, req) => {
+  // Query params via URL, auth via header is not available; use subprotocol or initial message
+  let ctx: ClientCtx | null = null;
+  let closed = false;
+
+  ws.on("message", async (raw) => {
+    
+    // Handle string messages (init, stop, etc.)
+    let messageText = null;
+    if (typeof raw === "string") {
+      messageText = raw;
+    } else if (Buffer.isBuffer(raw)) {
+      // Check if it's a text message in buffer form
+      try {
+        const text = raw.toString('utf8');
+        if (text.startsWith('{') && text.endsWith('}')) {
+          messageText = text;
+        }
+      } catch (e) {
+        // Not a text message, treat as binary
+      }
+    }
+    
+    if (messageText) {
+      try {
+        const msg = JSON.parse(messageText);
+        if (msg.type === "init") {
+        // Multi-tenant authentication
+        try {
+          let userId = "demo-user";
+          
+          // Check if token is provided and valid
+          if (msg.token && msg.token !== "demo-token") {
+            try {
+              const payload:any = jwt.verify(msg.token, JWT_SECRET);
+              userId = payload.uid;
+              console.log("Authenticated user:", userId);
+            } catch (e) {
+              console.log("Invalid token provided, falling back to demo mode");
+            }
+          } else if (msg.token === "demo-token") {
+            console.log("Demo mode user");
+          }
+          
+          const dateISO = msg.dateISO || new Date().toISOString().slice(0,10);
+          const pass = new Readable({ read(){} });
+          const sessionId = uuidv4();
+          
+          ctx = { 
+            userId,
+            sessionId,
+            classTitle: msg.classTitle || "Untitled Class", 
+            dateISO, 
+            transcriptParts: [], 
+            pcmStream: pass,
+            startTime: Date.now(),
+            awsBytes: 0
+          };
+          
+          // Start tracking the session
+          usageTracker.startTranscribeSession(userId, sessionId);
+          
+          ws.send(JSON.stringify({ type: "transcript", partial: true, text: "Initializing AWS Transcribe...", speaker: "System" }));
+          
+          // Start AWS stream
+          awsService.streamTranscription(pass, {
+            languageCode: process.env.AWS_TRANSCRIBE_LANGUAGE_CODE || "en-US",
+            vocabName: process.env.AWS_TRANSCRIBE_VOCAB_NAME || undefined as any,
+            languageModelName: process.env.AWS_TRANSCRIBE_LANGUAGE_MODEL || undefined as any,
+            speakerLabels: false  // Disable speaker labeling to avoid validation issues
+          }, (partial, text, speaker) => {
+            if (!closed && ctx) {
+              ctx.transcriptParts.push({ partial, text, speaker });
+              ws.send(JSON.stringify({ type: "transcript", partial, text, speaker }));
+            }
+          }).then(() => {
+            if (!closed && ctx) {
+              ws.send(JSON.stringify({ type: "transcript", partial: true, text: "AWS Transcribe connected. Start speaking...", speaker: "System" }));
+            }
+          }).catch(err => {
+            console.error("AWS Transcribe error:", err);
+            ws.send(JSON.stringify({ type: "error", message: "Transcribe error: " + err.message }));
+          });
+        } catch (e:any) {
+          ws.send(JSON.stringify({ type: "error", message: "Auth failed: " + e.message }));
+          ws.close();
+        }
+      } else if (msg.type === "stop") {
+        // finalize
+        if (ctx && !closed) {
+          console.log("Stopping session and generating notes...");
+          ctx.pcmStream.push(null);
+          closed = true;
+          // Use all transcript parts, not just final ones, to capture the complete conversation
+          const allParts = ctx.transcriptParts;
+          let fullText = "";
+          
+          if (allParts.length === 0) {
+            fullText = "";
+          } else {
+            // Get the latest/longest transcript from each speaker segment
+            const latestTranscripts = [];
+            let currentSpeaker = "";
+            let currentText = "";
+            
+            for (const part of allParts) {
+              const speaker = part.speaker || "Speaker";
+              
+              // If same speaker, keep the longer/latest text
+              if (speaker === currentSpeaker) {
+                if (part.text.length > currentText.length) {
+                  currentText = part.text;
+                }
+              } else {
+                // New speaker, save previous and start new
+                if (currentText) {
+                  latestTranscripts.push(`${currentSpeaker}: ${currentText}`);
+                }
+                currentSpeaker = speaker;
+                currentText = part.text;
+              }
+            }
+            
+            // Add the last segment
+            if (currentText) {
+              latestTranscripts.push(`${currentSpeaker}: ${currentText}`);
+            }
+            
+            fullText = latestTranscripts.join("\n");
+          }
+          console.log("Full transcript length:", fullText.length);
+          console.log("Full transcript preview:", fullText.substring(0, 200) + "...");
+          
+          // Persist transcript
+          const fileName = `transcripts/${ctx.userId}-${Date.now()}.txt`;
+          const fs = await import("fs");
+          const p = path.join(process.cwd(), fileName);
+          await fs.promises.mkdir(path.dirname(p), { recursive: true });
+          await fs.promises.writeFile(p, fullText, "utf8");
+
+          // AI notes
+          console.log("Sending generating_notes message");
+          ws.send(JSON.stringify({ type: "generating_notes", message: "🤖 Analyzing transcript with AI..." }));
+          
+          console.log("Calling AI analyzer...");
+          const { refinedTranscript, notes, usage: openAIUsage } = await aiAnalyzer.refineAndSummarize(
+            fullText, 
+            ctx.classTitle,
+            ctx.userId,
+            ctx.sessionId
+          );
+          console.log("Notes generated:", notes);
+          
+          // Get actual OpenAI cost from usage record
+          const openaiCost = openAIUsage?.estimatedCost || 0;
+          
+          // Send notes immediately after generation
+          console.log("Sending notes message immediately");
+          ws.send(JSON.stringify({ type: "notes", notes }));
+          
+          const docText = notesToDocText(ctx.classTitle, ctx.dateISO, refinedTranscript, notes);
+
+          // Google tokens
+          const row = await db.get("SELECT google_tokens FROM users WHERE id=?", [ctx.userId]);
+          let docUrl: string | null = null;
+          if (row?.google_tokens) {
+            const tokens = JSON.parse(row.google_tokens);
+            const gs = new (await import("./services/google-docs.service")).GoogleDocsService(
+              process.env.GOOGLE_CLIENT_ID || "", process.env.GOOGLE_CLIENT_SECRET || "", process.env.GOOGLE_REDIRECT_URI || ""
+            );
+            gs.setCredentials(tokens);
+            const title = `${ctx.classTitle} Notes - ${ctx.dateISO}`;
+            try {
+              docUrl = await gs.createFormattedNotesDoc(title, ctx.classTitle, ctx.dateISO, refinedTranscript, notes, "Class Notes");
+            } catch (e:any) {
+              ws.send(JSON.stringify({ type: "warning", message: "Google Docs failed: " + e.message }));
+            }
+          } else {
+            ws.send(JSON.stringify({ type: "warning", message: "Google not connected; notes not saved to Docs." }));
+          }
+
+          // Get actual duration from usage tracker
+          const actualDurationMinutes = usageTracker.endTranscribeSession(ctx.sessionId);
+          
+          // For now, use estimated cost, but this will be reconciled with actual AWS costs
+          const awsCost = calculateAWSTranscribeCost(actualDurationMinutes);
+
+          const id = uuidv4();
+          const now = new Date().toISOString();
+          
+          // Save session with cost data
+          await db.run(`
+            INSERT INTO sessions(
+              id, userId, classTitle, dateISO, transcriptPath, docUrl, 
+              createdAt, updatedAt, duration_minutes, aws_cost, openai_cost, transcript_length
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+          `, [
+            id, ctx.userId, ctx.classTitle, ctx.dateISO, fileName, docUrl, 
+            now, now, actualDurationMinutes, awsCost, openaiCost, fullText.length
+          ]);
+
+          // Log individual usage entries
+          await logUsage(ctx.userId, id, 'AWS', 'Transcribe', awsCost, `${actualDurationMinutes.toFixed(2)} minutes, ${ctx.awsBytes} bytes`);
+          
+          // Log OpenAI usage with actual token data
+          if (openAIUsage) {
+            await logUsage(
+              ctx.userId, 
+              id, 
+              'OpenAI', 
+              openAIUsage.model, 
+              openaiCost, 
+              JSON.stringify({
+                inputTokens: openAIUsage.inputTokens,
+                outputTokens: openAIUsage.outputTokens,
+                totalTokens: openAIUsage.totalTokens,
+                requestId: openAIUsage.requestId
+              })
+            );
+          }
+
+          // Update user totals
+          await db.run(`
+            UPDATE users SET 
+              total_sessions = total_sessions + 1,
+              total_aws_cost = total_aws_cost + ?,
+              total_openai_cost = total_openai_cost + ?
+            WHERE id = ?
+          `, [awsCost, openaiCost, ctx.userId]);
+
+          // Send final message with delay
+          setTimeout(() => {
+            console.log("Sending final message");
+            ws.send(JSON.stringify({ type: "final", docUrl, transcriptPath: fileName }));
+            
+            // Another delay before closing
+            setTimeout(() => {
+              ws.close();
+            }, 200);
+          }, 100);
+        }
+      }
+      } catch (e:any) {
+        console.error("Error parsing JSON message:", e.message);
+        ws.send(JSON.stringify({ type: "error", message: "Invalid message format" }));
+      }
+    } else {
+      // binary: PCM 16k mono chunk
+      if (ctx && !closed) {
+        ctx.pcmStream.push(raw);
+        if (Buffer.isBuffer(raw)) {
+          ctx.awsBytes += raw.length;
+        }
+      }
+    }
+  });
+
+  ws.on("close", () => {
+    closed = true;
+    if (ctx) ctx.pcmStream.push(null);
+  });
+});
+
+// Sessions index
+app.get("/api/sessions", authMiddleware, async (req:any, res) => {
+  const rows = await db.all("SELECT * FROM sessions WHERE userId=? ORDER BY createdAt DESC", [req.user.uid]);
+  res.json(rows);
+});
+
+// Health
+app.get("/api/health", (_, res) => res.json({ ok: true }));
+
+server.listen(PORT, () => {
+  console.log("Server listening on http://localhost:" + PORT);
+  
+  // Schedule daily cost reconciliation
+  import('./services/cost-reconciliation').then(({ scheduleDailyReconciliation }) => {
+    scheduleDailyReconciliation();
+  });
+});
