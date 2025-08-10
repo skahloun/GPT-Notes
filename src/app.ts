@@ -590,21 +590,52 @@ wss.on("connection", (ws, req) => {
           console.log("Sending generating_notes message");
           ws.send(JSON.stringify({ type: "generating_notes", message: "🤖 Analyzing transcript with AI..." }));
           
-          console.log("Calling AI analyzer...");
-          const { refinedTranscript, notes, usage: openAIUsage } = await aiAnalyzer.refineAndSummarize(
-            fullText, 
-            ctx.classTitle,
-            ctx.userId,
-            ctx.sessionId
-          );
-          console.log("Notes generated:", notes);
+          let refinedTranscript = fullText;
+          let notes: any = null;
+          let openAIUsage: any = null;
+          let openaiCost = 0;
           
-          // Get actual OpenAI cost from usage record
-          const openaiCost = openAIUsage?.estimatedCost || 0;
-          
-          // Send notes immediately after generation
-          console.log("Sending notes message immediately");
-          ws.send(JSON.stringify({ type: "notes", notes }));
+          try {
+            console.log("Calling AI analyzer...");
+            console.log("OpenAI API key present:", !!process.env.OPENAI_API_KEY);
+            
+            if (!process.env.OPENAI_API_KEY) {
+              throw new Error("OpenAI API key not configured");
+            }
+            
+            const aiResult = await aiAnalyzer.refineAndSummarize(
+              fullText, 
+              ctx.classTitle,
+              ctx.userId,
+              ctx.sessionId
+            );
+            
+            refinedTranscript = aiResult.refinedTranscript;
+            notes = aiResult.notes;
+            openAIUsage = aiResult.usage;
+            openaiCost = openAIUsage?.estimatedCost || 0;
+            
+            console.log("Notes generated:", notes);
+            console.log("Sending notes message immediately");
+            ws.send(JSON.stringify({ type: "notes", notes }));
+            
+          } catch (e: any) {
+            console.error("Error generating AI notes:", e.message);
+            ws.send(JSON.stringify({ 
+              type: "error", 
+              message: "Failed to generate AI notes: " + e.message 
+            }));
+            
+            // Create fallback notes
+            notes = {
+              introduction: ["Transcript saved but AI notes generation failed"],
+              keyConcepts: [],
+              explanations: [],
+              definitions: [],
+              summary: ["Please check your OpenAI API key configuration"],
+              examQuestions: []
+            };
+          }
           
           const docText = notesToDocText(ctx.classTitle, ctx.dateISO, refinedTranscript, notes);
 
