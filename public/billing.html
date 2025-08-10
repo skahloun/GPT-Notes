@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Billing & Usage - Class Notes PWA</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .billing-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+
+    .billing-header {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .billing-title {
+      font-size: var(--text-4xl);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--space-4);
+    }
+
+    .current-plan {
+      margin-bottom: var(--space-8);
+    }
+
+    .plan-card {
+      padding: var(--space-6);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(10px);
+    }
+
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .plan-name {
+      font-size: var(--text-2xl);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .plan-status {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-full);
+      color: var(--success);
+      font-size: var(--text-sm);
+      font-weight: 500;
+    }
+
+    .plan-status.inactive {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--error);
+    }
+
+    .usage-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+    }
+
+    .stat-card {
+      padding: var(--space-4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-secondary);
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--primary-400);
+      margin-bottom: var(--space-2);
+    }
+
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    .usage-chart {
+      margin-top: var(--space-6);
+      padding: var(--space-4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-secondary);
+      border-radius: var(--radius-lg);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin-top: var(--space-2);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary-400), var(--primary-600));
+      transition: width 0.3s ease;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+      flex-wrap: wrap;
+    }
+
+    .sessions-history {
+      margin-top: var(--space-8);
+    }
+
+    .sessions-table {
+      width: 100%;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+
+    .sessions-table th,
+    .sessions-table td {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .sessions-table th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .sessions-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .loading {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--text-muted);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--text-muted);
+    }
+
+    .cost-badge {
+      display: inline-block;
+      padding: var(--space-1) var(--space-2);
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: var(--radius-md);
+      color: var(--warning);
+      font-size: var(--text-xs);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="billing-container">
+    <div class="billing-header">
+      <h1 class="billing-title">Billing & Usage</h1>
+      <p class="text-muted">Manage your subscription and track usage</p>
+    </div>
+
+    <div class="current-plan" id="currentPlan">
+      <div class="loading">Loading billing information...</div>
+    </div>
+
+    <div class="sessions-history">
+      <h2 class="text-2xl font-bold mb-4">Recent Sessions</h2>
+      <div id="sessionsTable">
+        <div class="loading">Loading session history...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('authToken');
+    if (!token || token === 'demo-token') {
+      window.location.href = '/auth.html';
+    }
+
+    async function loadBillingInfo() {
+      try {
+        const response = await fetch('/api/billing-status', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!response.ok) throw new Error('Failed to load billing info');
+
+        const billing = await response.json();
+        const planContainer = document.getElementById('currentPlan');
+
+        let planHTML = '';
+        
+        if (billing.plan === 'none') {
+          planHTML = `
+            <div class="plan-card">
+              <div class="plan-header">
+                <h2 class="plan-name">No Active Plan</h2>
+                <span class="plan-status inactive">Inactive</span>
+              </div>
+              <p class="text-muted mb-4">You don't have an active subscription or credits</p>
+              <div class="action-buttons">
+                <a href="/pricing.html" class="btn btn-primary">Choose a Plan</a>
+              </div>
+            </div>
+          `;
+        } else if (billing.plan === 'payg') {
+          planHTML = `
+            <div class="plan-card">
+              <div class="plan-header">
+                <h2 class="plan-name">Pay-as-you-go</h2>
+                <span class="plan-status">Active</span>
+              </div>
+              <div class="usage-stats">
+                <div class="stat-card">
+                  <div class="stat-value">${billing.creditsBalance.toFixed(1)}</div>
+                  <div class="stat-label">Hours Remaining</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">$${(billing.creditsBalance * 2).toFixed(2)}</div>
+                  <div class="stat-label">Credit Balance</div>
+                </div>
+              </div>
+              <div class="action-buttons">
+                <a href="/pricing.html" class="btn btn-primary">Add Credits</a>
+                <a href="/" class="btn btn-secondary">Back to App</a>
+              </div>
+            </div>
+          `;
+        } else {
+          const percentage = (billing.hoursUsed / billing.hoursLimit) * 100;
+          const remaining = billing.hoursLimit - billing.hoursUsed;
+          
+          planHTML = `
+            <div class="plan-card">
+              <div class="plan-header">
+                <h2 class="plan-name">${billing.plan.charAt(0).toUpperCase() + billing.plan.slice(1)} Plan</h2>
+                <span class="plan-status">${billing.status === 'active' ? 'Active' : 'Inactive'}</span>
+              </div>
+              <div class="usage-stats">
+                <div class="stat-card">
+                  <div class="stat-value">${billing.hoursUsed.toFixed(1)}</div>
+                  <div class="stat-label">Hours Used</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${remaining.toFixed(1)}</div>
+                  <div class="stat-label">Hours Remaining</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">${billing.hoursLimit}</div>
+                  <div class="stat-label">Monthly Limit</div>
+                </div>
+              </div>
+              <div class="usage-chart">
+                <p class="text-sm text-muted mb-2">Monthly Usage</p>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%"></div>
+                </div>
+                <p class="text-xs text-muted mt-2">${percentage.toFixed(1)}% of monthly limit used</p>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="manageSubscription()">Manage Subscription</button>
+                <a href="/" class="btn btn-secondary">Back to App</a>
+              </div>
+            </div>
+          `;
+        }
+
+        planContainer.innerHTML = planHTML;
+      } catch (error) {
+        console.error('Error loading billing info:', error);
+        document.getElementById('currentPlan').innerHTML = `
+          <div class="plan-card">
+            <p class="text-error">Failed to load billing information</p>
+          </div>
+        `;
+      }
+    }
+
+    async function loadSessions() {
+      try {
+        const response = await fetch('/api/sessions', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!response.ok) throw new Error('Failed to load sessions');
+
+        const sessions = await response.json();
+        const tableContainer = document.getElementById('sessionsTable');
+
+        if (sessions.length === 0) {
+          tableContainer.innerHTML = `
+            <div class="empty-state">
+              <p>No recording sessions yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        let tableHTML = `
+          <div class="sessions-table-wrapper">
+            <table class="sessions-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Class Title</th>
+                  <th>Duration</th>
+                  <th>Cost</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        sessions.slice(0, 10).forEach(session => {
+          const date = new Date(session.createdAt).toLocaleDateString();
+          const duration = session.duration_minutes ? `${session.duration_minutes.toFixed(1)} min` : 'N/A';
+          const cost = session.aws_cost + session.openai_cost;
+          
+          tableHTML += `
+            <tr>
+              <td>${date}</td>
+              <td>${session.classTitle}</td>
+              <td>${duration}</td>
+              <td><span class="cost-badge">$${cost.toFixed(3)}</span></td>
+              <td>
+                ${session.docUrl ? `<a href="${session.docUrl}" target="_blank" class="text-primary">View Notes</a>` : 'No notes'}
+              </td>
+            </tr>
+          `;
+        });
+
+        tableHTML += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        tableContainer.innerHTML = tableHTML;
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+        document.getElementById('sessionsTable').innerHTML = `
+          <div class="empty-state">
+            <p class="text-error">Failed to load session history</p>
+          </div>
+        `;
+      }
+    }
+
+    function manageSubscription() {
+      // For now, just redirect to pricing page
+      // In production, this would open PayPal subscription management
+      alert('To manage your subscription, please log into your PayPal account');
+    }
+
+    // Load data on page load
+    loadBillingInfo();
+    loadSessions();
+  </script>
+</body>
+</html>

@@ -310,9 +310,25 @@
         hideLoading();
         
         if (response.ok) {
-          showSuccess('Account created successfully! Please sign in.');
-          switchTab('login');
-          document.getElementById('loginEmail').value = email;
+          // Auto-login after registration
+          const loginResponse = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          
+          if (loginResponse.ok) {
+            const loginData = await loginResponse.json();
+            localStorage.setItem('authToken', loginData.token);
+            showSuccess('Account created! Redirecting to plan selection...');
+            setTimeout(() => {
+              window.location.href = '/pricing.html';
+            }, 1000);
+          } else {
+            showSuccess('Account created successfully! Please sign in.');
+            switchTab('login');
+            document.getElementById('loginEmail').value = email;
+          }
         } else {
           // Show specific error message
           if (data.error && data.error.includes('UNIQUE constraint failed')) {

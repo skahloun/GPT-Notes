@@ -489,9 +489,11 @@ async function disconnectGoogle() {
 async function updateUserInfo() {
   const token = localStorage.getItem('authToken');
   const userInfoEl = document.getElementById('userInfo');
+  const billingInfoEl = document.getElementById('billingInfo');
   
   if (token === 'demo-token') {
     userInfoEl.textContent = 'Demo User';
+    billingInfoEl.style.display = 'none';
   } else if (token) {
     try {
       const userResponse = await fetch('/api/user-info', {
@@ -504,12 +506,34 @@ async function updateUserInfo() {
       } else {
         userInfoEl.textContent = 'User';
       }
+      
+      // Get billing status
+      const billingResponse = await fetch('/api/billing-status', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      
+      if (billingResponse.ok) {
+        const billing = await billingResponse.json();
+        if (billing.plan === 'none') {
+          billingInfoEl.innerHTML = '<span style="color: var(--warning)">⚠️ No active plan</span>';
+        } else if (billing.plan === 'payg') {
+          billingInfoEl.innerHTML = `<span>Credits: ${billing.creditsBalance.toFixed(1)} hrs</span>`;
+        } else {
+          const remaining = billing.hoursLimit - billing.hoursUsed;
+          billingInfoEl.innerHTML = `<span>${billing.plan}: ${remaining.toFixed(1)}/${billing.hoursLimit} hrs</span>`;
+        }
+      }
     } catch {
       userInfoEl.textContent = 'User';
     }
   } else {
     userInfoEl.textContent = 'Not signed in';
   }
+}
+
+// Billing functions
+function viewBilling() {
+  window.location.href = '/billing.html';
 }
 
 // Initialize button states

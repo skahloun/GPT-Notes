@@ -17,6 +17,8 @@ import { GoogleDocsService } from "./services/google-docs.service";
 import { notesToDocText } from "./utils/export-utils";
 import { usageTracker } from "./services/usage-tracker";
 import { db } from "./config/database";
+import { paymentService } from "./services/payment.service";
+import { PayPalWebhookService } from "./services/paypal-webhook.service";
 
 const app = express();
 const server = http.createServer(app);
@@ -444,6 +446,24 @@ wss.on("connection", (ws, req) => {
             console.log("Demo mode user");
           }
           
+          // Check if user has valid subscription or credits (skip for demo)
+          if (userId !== "demo-user") {
+            const user = await db.get("SELECT * FROM users WHERE id=?", [userId]);
+            const hasValidPlan = user && (
+              (user.subscription_status === 'active' && user.hours_used_this_month < user.hours_limit) ||
+              (user.tier === 'payg' && user.credits_balance > 0)
+            );
+            
+            if (!hasValidPlan) {
+              ws.send(JSON.stringify({ 
+                type: "error", 
+                message: "No active subscription or credits. Please purchase a plan to continue." 
+              }));
+              ws.close();
+              return;
+            }
+          }
+          
           const dateISO = msg.dateISO || new Date().toISOString().slice(0,10);
           const pass = new Readable({ read(){} });
           const sessionId = uuidv4();
@@ -660,6 +680,11 @@ wss.on("connection", (ws, req) => {
               total_openai_cost = total_openai_cost + ?
             WHERE id = ?
           `, [awsCost, openaiCost, ctx.userId]);
+          
+          // Charge usage based on plan (skip for demo)
+          if (ctx.userId !== "demo-user") {
+            await paymentService.chargeUsage(ctx.userId, actualDurationMinutes, id, db);
+          }
 
           // Send final message with delay
           setTimeout(() => {
@@ -698,6 +723,74 @@ wss.on("connection", (ws, req) => {
 app.get("/api/sessions", authMiddleware, async (req:any, res) => {
   const rows = await db.all("SELECT * FROM sessions WHERE userId=? ORDER BY createdAt DESC", [req.user.uid]);
   res.json(rows);
+});
+
+// Payment endpoints
+app.post("/api/subscribe", authMiddleware, async (req:any, res) => {
+  try {
+    const { subscriptionId, plan } = req.body;
+    const result = await paymentService.createSubscription(req.user.uid, plan, subscriptionId, db);
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post("/api/add-credit", authMiddleware, async (req:any, res) => {
+  try {
+    const { orderId, amount } = req.body;
+    const result = await paymentService.addCredits(req.user.uid, parseFloat(amount), orderId, db);
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
+  try {
+    const user = await db.get("SELECT subscription_plan, subscription_status, hours_used_this_month, hours_limit, credits_balance FROM users WHERE id=?", [req.user.uid]);
+    res.json({
+      plan: user.subscription_plan || 'none',
+      status: user.subscription_status || 'inactive',
+      hoursUsed: user.hours_used_this_month || 0,
+      hoursLimit: user.hours_limit || 0,
+      creditsBalance: user.credits_balance || 0
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PayPal Webhook endpoint
+const paypalWebhookService = new PayPalWebhookService(process.env.PAYPAL_WEBHOOK_ID || '');
+
+app.post("/api/paypal-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const headers = req.headers as any;
+    const event = JSON.parse(req.body.toString());
+    
+    // Verify webhook signature
+    const isValid = paypalWebhookService.verifyWebhookSignature(
+      headers['paypal-auth-algo'],
+      headers['paypal-cert-url'],
+      headers['paypal-transmission-id'],
+      headers['paypal-transmission-sig'],
+      headers['paypal-transmission-time'],
+      event
+    );
+    
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+    
+    // Process webhook event
+    await paypalWebhookService.handleWebhookEvent(event, db);
+    
+    res.status(200).json({ received: true });
+  } catch (e: any) {
+    console.error('PayPal webhook error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Health

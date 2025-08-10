@@ -107,7 +107,14 @@ export class DatabaseAdapter {
         last_login TIMESTAMP,
         total_sessions INTEGER DEFAULT 0,
         total_aws_cost DECIMAL(10,4) DEFAULT 0.0,
-        total_openai_cost DECIMAL(10,4) DEFAULT 0.0
+        total_openai_cost DECIMAL(10,4) DEFAULT 0.0,
+        subscription_plan TEXT,
+        subscription_status TEXT,
+        paypal_subscription_id TEXT,
+        hours_used_this_month DECIMAL(10,2) DEFAULT 0,
+        hours_limit INTEGER DEFAULT 0,
+        credits_balance DECIMAL(10,2) DEFAULT 0,
+        billing_cycle_start TIMESTAMP
       )`,
       
       `CREATE TABLE IF NOT EXISTS sessions (
@@ -146,11 +153,25 @@ export class DatabaseAdapter {
         details TEXT
       )`,
       
+      `CREATE TABLE IF NOT EXISTS payments (
+        id TEXT PRIMARY KEY,
+        userId TEXT,
+        type TEXT,
+        amount DECIMAL(10,2),
+        currency TEXT DEFAULT 'USD',
+        paypal_order_id TEXT,
+        paypal_subscription_id TEXT,
+        status TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        metadata TEXT
+      )`,
+      
       // Create indexes for better performance
       `CREATE INDEX IF NOT EXISTS idx_sessions_userId ON sessions(userId)`,
       `CREATE INDEX IF NOT EXISTS idx_sessions_createdAt ON sessions(createdAt)`,
       `CREATE INDEX IF NOT EXISTS idx_usage_logs_userId ON usage_logs(userId)`,
-      `CREATE INDEX IF NOT EXISTS idx_usage_logs_timestamp ON usage_logs(timestamp)`
+      `CREATE INDEX IF NOT EXISTS idx_usage_logs_timestamp ON usage_logs(timestamp)`,
+      `CREATE INDEX IF NOT EXISTS idx_payments_userId ON payments(userId)`
     ];
 
     for (const query of queries) {
@@ -172,7 +193,14 @@ export class DatabaseAdapter {
         last_login TEXT,
         total_sessions INTEGER DEFAULT 0,
         total_aws_cost REAL DEFAULT 0.0,
-        total_openai_cost REAL DEFAULT 0.0
+        total_openai_cost REAL DEFAULT 0.0,
+        subscription_plan TEXT,
+        subscription_status TEXT,
+        paypal_subscription_id TEXT,
+        hours_used_this_month REAL DEFAULT 0,
+        hours_limit INTEGER DEFAULT 0,
+        credits_balance REAL DEFAULT 0,
+        billing_cycle_start TEXT
       );
     `);
     
@@ -215,6 +243,21 @@ export class DatabaseAdapter {
         app_estimated_cost REAL,
         reconciled_at TEXT,
         details TEXT
+      );
+    `);
+    
+    await this.sqliteDb!.exec(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id TEXT PRIMARY KEY,
+        userId TEXT,
+        type TEXT,
+        amount REAL,
+        currency TEXT DEFAULT 'USD',
+        paypal_order_id TEXT,
+        paypal_subscription_id TEXT,
+        status TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        metadata TEXT
       );
     `);
   }

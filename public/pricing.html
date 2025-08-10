@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Plan - Class Notes PWA</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .pricing-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .pricing-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            transition: all var(--duration-normal) ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(139, 92, 246, 0.15);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--primary);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.5rem 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transform: translateX(30%) translateY(-30%) rotate(45deg);
+            transform-origin: center;
+            width: 200px;
+            text-align: center;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price .currency {
+            font-size: 1.5rem;
+            vertical-align: super;
+        }
+
+        .plan-price .period {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .plan-description {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .plan-features li::before {
+            content: "✓";
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .select-plan-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--duration-normal) ease;
+        }
+
+        .select-plan-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .select-plan-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pay-as-you-go {
+            background: var(--surface-glass);
+            backdrop-filter: blur(var(--blur-md));
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .pay-as-you-go h2 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .pay-as-you-go .price {
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .payment-methods {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .payment-method {
+            opacity: 0.6;
+        }
+
+        #paypal-button-container {
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="pricing-container">
+        <div class="pricing-header">
+            <h1>Choose Your Plan</h1>
+            <p class="text-secondary">Select the plan that works best for your needs</p>
+        </div>
+
+        <!-- Pay as you go option -->
+        <div class="pay-as-you-go">
+            <h2>Option A – Pay-as-you-go</h2>
+            <div class="price">$2/hour</div>
+            <p class="text-secondary">Perfect for occasional use. Only pay for what you use.</p>
+            <button class="select-plan-btn" onclick="selectPlan('payg')">
+                Select Pay-as-you-go
+            </button>
+        </div>
+
+        <div class="pricing-header">
+            <h3>Option B – Subscription Plans</h3>
+        </div>
+
+        <!-- Subscription plans -->
+        <div class="pricing-options">
+            <div class="pricing-card">
+                <h3 class="plan-name">Student</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>29.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">10 hours of transcription per month</p>
+                <ul class="plan-features">
+                    <li>Real-time transcription</li>
+                    <li>AI-powered notes</li>
+                    <li>Google Docs export</li>
+                    <li>10 hours included</li>
+                    <li>$3/hour after limit</li>
+                </ul>
+                <button class="select-plan-btn" onclick="selectPlan('student')">
+                    Select Student Plan
+                </button>
+            </div>
+
+            <div class="pricing-card popular">
+                <div class="popular-badge">POPULAR</div>
+                <h3 class="plan-name">Premium</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>69.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">30 hours of transcription per month</p>
+                <ul class="plan-features">
+                    <li>Everything in Student</li>
+                    <li>30 hours included</li>
+                    <li>Priority processing</li>
+                    <li>Advanced AI summaries</li>
+                    <li>$2.50/hour after limit</li>
+                </ul>
+                <button class="select-plan-btn" onclick="selectPlan('premium')">
+                    Select Premium Plan
+                </button>
+            </div>
+
+            <div class="pricing-card">
+                <h3 class="plan-name">Unlimited</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>119.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">Up to 50 hours per month</p>
+                <ul class="plan-features">
+                    <li>Everything in Premium</li>
+                    <li>50 hours included</li>
+                    <li>Team collaboration</li>
+                    <li>API access</li>
+                    <li>Priority support</li>
+                </ul>
+                <button class="select-plan-btn" onclick="selectPlan('unlimited')">
+                    Select Unlimited Plan
+                </button>
+            </div>
+        </div>
+
+        <div class="payment-methods">
+            <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" class="payment-method">
+            <span class="text-secondary">Secure payment powered by PayPal</span>
+        </div>
+
+        <div id="paypal-button-container"></div>
+    </div>
+
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD"></script>
+    
+    <script>
+        let selectedPlan = null;
+        const planDetails = {
+            payg: { name: 'Pay-as-you-go', price: '2.00', type: 'payg' },
+            student: { name: 'Student Plan', price: '29.99', type: 'subscription' },
+            premium: { name: 'Premium Plan', price: '69.99', type: 'subscription' },
+            unlimited: { name: 'Unlimited Plan', price: '119.99', type: 'subscription' }
+        };
+
+        function selectPlan(planId) {
+            selectedPlan = planDetails[planId];
+            
+            // Show loading on button
+            const buttons = document.querySelectorAll('.select-plan-btn');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes('Select')) {
+                    btn.disabled = true;
+                }
+            });
+            
+            // Show PayPal button
+            document.getElementById('paypal-button-container').style.display = 'block';
+            document.getElementById('paypal-button-container').innerHTML = '';
+            
+            if (selectedPlan.type === 'subscription') {
+                createSubscription();
+            } else {
+                createPayAsYouGo();
+            }
+        }
+
+        function createSubscription() {
+            paypal.Buttons({
+                createSubscription: function(data, actions) {
+                    return actions.subscription.create({
+                        'plan_id': selectedPlan.planId // You'll need to create these in PayPal
+                    });
+                },
+                onApprove: function(data, actions) {
+                    console.log('Subscription ID:', data.subscriptionID);
+                    
+                    // Save subscription to your backend
+                    fetch('/api/subscribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+                        },
+                        body: JSON.stringify({
+                            subscriptionId: data.subscriptionID,
+                            plan: selectedPlan.name
+                        })
+                    }).then(response => {
+                        if (response.ok) {
+                            window.location.href = '/';
+                        }
+                    });
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('Payment failed. Please try again.');
+                }
+            }).render('#paypal-button-container');
+        }
+
+        function createPayAsYouGo() {
+            // For pay-as-you-go, we'll create an order for initial credits
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: '10.00' // $10 initial credit
+                            },
+                            description: 'Class Notes PWA - Pay as you go credit'
+                        }]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        // Save payment to your backend
+                        fetch('/api/add-credit', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+                            },
+                            body: JSON.stringify({
+                                orderId: data.orderID,
+                                amount: '10.00'
+                            })
+                        }).then(response => {
+                            if (response.ok) {
+                                window.location.href = '/';
+                            }
+                        });
+                    });
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('Payment failed. Please try again.');
+                }
+            }).render('#paypal-button-container');
+        }
+
+        // Check if user is authenticated
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.location.href = '/auth.html';
+        }
+    </script>
+</body>
+</html>
