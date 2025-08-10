@@ -47,10 +47,17 @@ export class DatabaseAdapter {
     }
   }
 
+  // Convert SQLite-style ? placeholders to PostgreSQL $1, $2, etc.
+  private convertToPostgreSQLQuery(query: string): string {
+    let index = 1;
+    return query.replace(/\?/g, () => `$${index++}`);
+  }
+
   // Unified query interface
   async run(query: string, params: any[] = []): Promise<any> {
     if (this.config.type === 'postgresql') {
-      const result = await this.pgPool!.query(query, params);
+      const pgQuery = this.convertToPostgreSQLQuery(query);
+      const result = await this.pgPool!.query(pgQuery, params);
       return { lastID: result.rows[0]?.id };
     } else {
       return await this.sqliteDb!.run(query, params);
@@ -59,7 +66,8 @@ export class DatabaseAdapter {
 
   async get(query: string, params: any[] = []): Promise<any> {
     if (this.config.type === 'postgresql') {
-      const result = await this.pgPool!.query(query, params);
+      const pgQuery = this.convertToPostgreSQLQuery(query);
+      const result = await this.pgPool!.query(pgQuery, params);
       return result.rows[0];
     } else {
       return await this.sqliteDb!.get(query, params);
@@ -68,10 +76,20 @@ export class DatabaseAdapter {
 
   async all(query: string, params: any[] = []): Promise<any[]> {
     if (this.config.type === 'postgresql') {
-      const result = await this.pgPool!.query(query, params);
+      const pgQuery = this.convertToPostgreSQLQuery(query);
+      const result = await this.pgPool!.query(pgQuery, params);
       return result.rows;
     } else {
       return await this.sqliteDb!.all(query, params);
+    }
+  }
+
+  // Execute query without expecting results (for CREATE TABLE, etc.)
+  async exec(query: string): Promise<void> {
+    if (this.config.type === 'postgresql') {
+      await this.pgPool!.query(query);
+    } else {
+      await this.sqliteDb!.exec(query);
     }
   }
 
