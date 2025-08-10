@@ -150,10 +150,13 @@ function adminMiddleware(req:any, res:any, next:any) {
 }
 
 // --- Google OAuth ---
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:6001/auth/google/callback";
+console.log("Google OAuth redirect URI:", GOOGLE_REDIRECT_URI);
+
 const googleService = new GoogleDocsService(
   process.env.GOOGLE_CLIENT_ID || "",
   process.env.GOOGLE_CLIENT_SECRET || "",
-  process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/auth/google/callback"
+  GOOGLE_REDIRECT_URI
 );
 
 app.get("/auth/google", async (req:any, res) => {
