@@ -447,8 +447,11 @@ function updateGoogleAuthUI(isConnected) {
 }
 
 function connectGoogle() {
-  // Open Google OAuth in new window
-  const authWindow = window.open('/auth/google', 'googleAuth', 'width=500,height=600');
+  // Get the auth token to pass to Google OAuth
+  const authToken = localStorage.getItem('authToken') || 'demo-token';
+  
+  // Open Google OAuth in new window with token as query parameter
+  const authWindow = window.open(`/auth/google?token=${encodeURIComponent(authToken)}`, 'googleAuth', 'width=500,height=600');
   
   // Poll for window closure to refresh status
   const pollTimer = setInterval(() => {

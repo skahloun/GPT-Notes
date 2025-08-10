@@ -160,22 +160,74 @@ const googleService = new GoogleDocsService(
 );
 
 app.get("/auth/google", async (req:any, res) => {
-  const url = googleService.generateAuthUrl([
+  // Get the user token from the query parameter
+  const userToken = req.query.token as string;
+  
+  // Generate the auth URL with state parameter
+  const authUrl = googleService.generateAuthUrl([
     "https://www.googleapis.com/auth/drive.file",
     "https://www.googleapis.com/auth/documents"
   ]);
-  res.redirect(url);
+  
+  // Add the user token as state parameter
+  const urlWithState = authUrl + (userToken ? `&state=${encodeURIComponent(userToken)}` : '');
+  res.redirect(urlWithState);
 });
 
 app.get("/auth/google/callback", async (req:any, res) => {
   const code = req.query.code as string;
-  if (!code) return res.status(400).send("Missing code");
-  const tokens = await googleService.setCredentialsFromCode(code);
+  const state = req.query.state as string; // User token passed as state
   
-  // For demo mode, automatically save tokens to demo-user
+  if (!code) return res.status(400).send("Missing code");
+  
   try {
-    await db.run("UPDATE users SET google_tokens=? WHERE id=?", [JSON.stringify(tokens), "demo-user"]);
-    res.send("✅ Google connected successfully! You can now close this tab and test recording. Notes will be automatically saved to Google Docs.");
+    const tokens = await googleService.setCredentialsFromCode(code);
+    
+    // Determine which user to save tokens for
+    let userId = "demo-user";
+    if (state && state !== "demo-token") {
+      try {
+        const payload: any = jwt.verify(state, JWT_SECRET);
+        userId = payload.uid;
+      } catch (e) {
+        console.error("Invalid state token, falling back to demo-user");
+      }
+    }
+    
+    // Save tokens to the correct user
+    await db.run("UPDATE users SET google_tokens=? WHERE id=?", [JSON.stringify(tokens), userId]);
+    
+    // Redirect back to the app with success message
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Google Connected</title>
+        <style>
+          body { font-family: system-ui; padding: 40px; text-align: center; }
+          .success { color: #22c55e; font-size: 24px; margin-bottom: 20px; }
+          .message { color: #64748b; margin-bottom: 30px; }
+          button { background: #3b82f6; color: white; border: none; padding: 12px 24px; 
+                   border-radius: 8px; cursor: pointer; font-size: 16px; }
+          button:hover { background: #2563eb; }
+        </style>
+      </head>
+      <body>
+        <div class="success">✅ Google Connected Successfully!</div>
+        <div class="message">Your Google account has been connected. You can now close this window.</div>
+        <button onclick="window.close()">Close Window</button>
+        <script>
+          // Try to close the window automatically after 3 seconds
+          setTimeout(() => {
+            window.close();
+            // If window.close() doesn't work, redirect to the app
+            window.location.href = '${process.env.NODE_ENV === 'production' ? 'https://gpt-notes-gbtn.onrender.com' : 'http://localhost:6001'}';
+          }, 3000);
+        </script>
+      </body>
+      </html>
+    `);
   } catch (e: any) {
     console.error("Error saving tokens:", e);
     res.status(500).send("Error saving Google tokens: " + e.message);
