@@ -10,14 +10,13 @@ import { WebSocketServer } from "ws";
 import { v4 as uuidv4 } from "uuid";
 import { Readable } from "stream";
 import jwt from "jsonwebtoken";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
 
 import { AwsTranscribeService } from "./services/aws-transcribe.service";
 import { AIAnalyzer } from "./services/ai-analyzer";
 import { GoogleDocsService } from "./services/google-docs.service";
 import { notesToDocText } from "./utils/export-utils";
 import { usageTracker } from "./services/usage-tracker";
+import { db } from "./config/database";
 
 const app = express();
 const server = http.createServer(app);
@@ -32,56 +31,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
-// --- DB setup (sqlite) ---
-let db: any;
+// --- DB setup ---
+// Database will use PostgreSQL if DATABASE_URL is set, otherwise SQLite
 (async () => {
-  db = await open({
-    filename: path.join(process.cwd(), "class-notes.db"),
-    driver: sqlite3.Database
-  });
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE,
-      password TEXT,
-      tier TEXT DEFAULT 'free',
-      google_tokens TEXT,
-      is_admin INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      last_login TEXT,
-      total_sessions INTEGER DEFAULT 0,
-      total_aws_cost REAL DEFAULT 0.0,
-      total_openai_cost REAL DEFAULT 0.0
-    );
-  `);
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      userId TEXT,
-      classTitle TEXT,
-      dateISO TEXT,
-      transcriptPath TEXT,
-      docUrl TEXT,
-      createdAt TEXT,
-      updatedAt TEXT,
-      duration_minutes REAL DEFAULT 0,
-      aws_cost REAL DEFAULT 0.0,
-      openai_cost REAL DEFAULT 0.0,
-      transcript_length INTEGER DEFAULT 0
-    );
-  `);
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS usage_logs (
-      id TEXT PRIMARY KEY,
-      userId TEXT,
-      sessionId TEXT,
-      service TEXT,
-      operation TEXT,
-      cost REAL,
-      timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-      details TEXT
-    );
-  `);
+  await db.initialize();
+  console.log(`Database initialized: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
 })();
 
 // --- Auth (very simple demo) ---
