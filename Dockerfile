@@ -1,52 +1,27 @@
-# Build stage
-FROM node:20-alpine AS builder
-
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Copy package files and npm config
-COPY package*.json ./
-COPY .npmrc ./
-
-# Install ALL dependencies (including dev) for building
-RUN npm ci
-
-# Copy source code
-COPY . .
-
-# Build TypeScript
-RUN npm run build && ls -la dist/
-
-# Production stage
+# Single stage build with all dependencies
 FROM node:20-alpine
 
-# Install runtime dependencies
-RUN apk add --no-cache ffmpeg
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ ffmpeg
 
 WORKDIR /app
 
-# Copy package files and npm config
-COPY package*.json ./
-COPY .npmrc ./
+# Copy all files
+COPY . .
 
-# Install production dependencies only
-RUN npm ci --omit=dev && npm cache clean --force
+# Install all dependencies and build
+RUN npm install --legacy-peer-deps && \
+    npm run build && \
+    npm prune --production --legacy-peer-deps && \
+    npm cache clean --force
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
-
-# Create directories for data
+# Create directories
 RUN mkdir -p /app/data /app/transcripts
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
