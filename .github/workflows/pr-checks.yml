@@ -1,0 +1,55 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-code:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Check code formatting
+      run: |
+        echo "TODO: Add prettier check"
+        echo "npm run format:check"
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Check for console.logs
+      run: |
+        if grep -r "console.log" --include="*.ts" src/; then
+          echo "Warning: console.log statements found"
+        fi
+    
+    - name: Check bundle size
+      run: |
+        echo "TODO: Add bundle size check"
+        echo "Could use size-limit or bundlesize"
+
+  test-docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Docker image
+      run: docker build -t class-notes-pwa:test .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d -p 6001:6001 --name test-app class-notes-pwa:test
+        sleep 10
+        curl -f http://localhost:6001/api/health || exit 1
+        docker stop test-app
