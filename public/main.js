@@ -514,7 +514,9 @@ async function updateUserInfo() {
       
       if (billingResponse.ok) {
         const billing = await billingResponse.json();
-        if (billing.plan === 'none') {
+        if (billing.plan === 'test') {
+          billingInfoEl.innerHTML = '<span style="color: var(--success)">🧪 Test Account - Unlimited</span>';
+        } else if (billing.plan === 'none') {
           billingInfoEl.innerHTML = '<span style="color: var(--warning)">⚠️ No active plan</span>';
         } else if (billing.plan === 'payg') {
           billingInfoEl.innerHTML = `<span>Credits: ${billing.creditsBalance.toFixed(1)} hrs</span>`;

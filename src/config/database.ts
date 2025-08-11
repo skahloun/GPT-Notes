@@ -114,7 +114,8 @@ export class DatabaseAdapter {
         hours_used_this_month DECIMAL(10,2) DEFAULT 0,
         hours_limit INTEGER DEFAULT 0,
         credits_balance DECIMAL(10,2) DEFAULT 0,
-        billing_cycle_start TIMESTAMP
+        billing_cycle_start TIMESTAMP,
+        is_test_account INTEGER DEFAULT 0
       )`,
       
       `CREATE TABLE IF NOT EXISTS sessions (
@@ -200,7 +201,8 @@ export class DatabaseAdapter {
         hours_used_this_month REAL DEFAULT 0,
         hours_limit INTEGER DEFAULT 0,
         credits_balance REAL DEFAULT 0,
-        billing_cycle_start TEXT
+        billing_cycle_start TEXT,
+        is_test_account INTEGER DEFAULT 0
       );
     `);
     

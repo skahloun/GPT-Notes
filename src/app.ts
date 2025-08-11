@@ -45,7 +45,22 @@ app.post("/api/register", async (req, res) => {
   const { email, password } = req.body;
   const id = uuidv4();
   try {
-    await db.run("INSERT INTO users(id,email,password,tier) VALUES(?,?,?,?)", [id, email, password, "free"]);
+    // Check if this is a test account
+    const isTestAccount = email.toLowerCase().startsWith('test@') || email.toLowerCase().endsWith('@test.com');
+    
+    if (isTestAccount) {
+      // Create test account with unlimited access
+      await db.run(`
+        INSERT INTO users(
+          id, email, password, tier, 
+          subscription_plan, subscription_status, hours_limit, 
+          credits_balance, is_test_account
+        ) VALUES(?,?,?,?,?,?,?,?,?)
+      `, [id, email, password, "test", "unlimited", "active", 9999, 9999, 1]);
+    } else {
+      // Regular account creation
+      await db.run("INSERT INTO users(id,email,password,tier) VALUES(?,?,?,?)", [id, email, password, "free"]);
+    }
     res.json({ ok: true });
   } catch (e:any) {
     res.status(400).json({ error: e.message });
@@ -204,9 +219,12 @@ app.get("/api/verify-token", authMiddleware, (req: any, res) => {
 // --- User info ---
 app.get("/api/user-info", authMiddleware, async (req: any, res) => {
   try {
-    const row = await db.get("SELECT email FROM users WHERE id=?", [req.user.uid]);
+    const row = await db.get("SELECT email, is_test_account FROM users WHERE id=?", [req.user.uid]);
     if (row) {
-      res.json({ email: row.email });
+      res.json({ 
+        email: row.email,
+        isTestAccount: row.is_test_account === 1
+      });
     } else {
       res.status(404).json({ error: "User not found" });
     }
@@ -748,14 +766,28 @@ app.post("/api/add-credit", authMiddleware, async (req:any, res) => {
 
 app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
   try {
-    const user = await db.get("SELECT subscription_plan, subscription_status, hours_used_this_month, hours_limit, credits_balance FROM users WHERE id=?", [req.user.uid]);
-    res.json({
-      plan: user.subscription_plan || 'none',
-      status: user.subscription_status || 'inactive',
-      hoursUsed: user.hours_used_this_month || 0,
-      hoursLimit: user.hours_limit || 0,
-      creditsBalance: user.credits_balance || 0
-    });
+    const user = await db.get("SELECT subscription_plan, subscription_status, hours_used_this_month, hours_limit, credits_balance, is_test_account FROM users WHERE id=?", [req.user.uid]);
+    
+    // Special handling for test accounts
+    if (user.is_test_account === 1) {
+      res.json({
+        plan: 'test',
+        status: 'active',
+        hoursUsed: 0,
+        hoursLimit: 9999,
+        creditsBalance: 9999,
+        isTestAccount: true
+      });
+    } else {
+      res.json({
+        plan: user.subscription_plan || 'none',
+        status: user.subscription_status || 'inactive',
+        hoursUsed: user.hours_used_this_month || 0,
+        hoursLimit: user.hours_limit || 0,
+        creditsBalance: user.credits_balance || 0,
+        isTestAccount: false
+      });
+    }
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
