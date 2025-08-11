@@ -271,30 +271,37 @@ app.get("/api/admin/stats", adminMiddleware, async (req: any, res) => {
     const stats = await db.get(`
       SELECT 
         COUNT(*) as total_users,
-        SUM(total_sessions) as total_sessions,
-        SUM(total_aws_cost) as total_aws_cost,
-        SUM(total_openai_cost) as total_openai_cost
+        COALESCE(SUM(total_sessions), 0) as total_sessions,
+        COALESCE(SUM(total_aws_cost), 0) as total_aws_cost,
+        COALESCE(SUM(total_openai_cost), 0) as total_openai_cost
       FROM users
     `);
     
-    const recentUsers = await db.get(`
-      SELECT COUNT(*) as recent_users 
-      FROM users 
-      WHERE created_at > datetime('now', '-7 days')
-    `);
+    // Use database-agnostic date comparison
+    const isPostgreSQL = process.env.DATABASE_URL ? true : false;
     
-    const activeUsers = await db.get(`
-      SELECT COUNT(*) as active_users 
-      FROM users 
-      WHERE last_login > datetime('now', '-7 days')
-    `);
+    const recentUsers = await db.get(
+      isPostgreSQL 
+        ? `SELECT COUNT(*) as recent_users FROM users WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'`
+        : `SELECT COUNT(*) as recent_users FROM users WHERE created_at > datetime('now', '-7 days')`
+    );
+    
+    const activeUsers = await db.get(
+      isPostgreSQL
+        ? `SELECT COUNT(*) as active_users FROM users WHERE last_login > CURRENT_TIMESTAMP - INTERVAL '7 days'`
+        : `SELECT COUNT(*) as active_users FROM users WHERE last_login > datetime('now', '-7 days')`
+    );
     
     res.json({
-      ...stats,
-      recent_users: recentUsers.recent_users,
-      active_users: activeUsers.active_users
+      total_users: stats?.total_users || 0,
+      total_sessions: stats?.total_sessions || 0,
+      total_aws_cost: stats?.total_aws_cost || 0,
+      total_openai_cost: stats?.total_openai_cost || 0,
+      recent_users: recentUsers?.recent_users || 0,
+      active_users: activeUsers?.active_users || 0
     });
   } catch (e: any) {
+    console.error('Admin stats error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -841,6 +848,54 @@ app.post("/api/paypal-webhook", express.raw({ type: 'application/json' }), async
 
 // Health
 app.get("/api/health", (_, res) => res.json({ ok: true }));
+
+// Debug endpoint for admin
+app.get("/api/admin/debug", adminMiddleware, async (req: any, res) => {
+  try {
+    // Test database connection
+    const testQuery = await db.get("SELECT 1 as test");
+    
+    // Check if users table exists
+    let tableCheck;
+    if (process.env.DATABASE_URL) {
+      tableCheck = await db.get(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = 'users'
+        ) as table_exists
+      `);
+    } else {
+      tableCheck = await db.get(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='users'
+      `);
+    }
+    
+    // Count users
+    let userCount;
+    try {
+      userCount = await db.get("SELECT COUNT(*) as count FROM users");
+    } catch (e) {
+      userCount = { error: e.message };
+    }
+    
+    res.json({
+      database: process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite',
+      connected: !!testQuery,
+      tableExists: !!tableCheck,
+      userCount: userCount,
+      env: {
+        hasDbUrl: !!process.env.DATABASE_URL,
+        nodeEnv: process.env.NODE_ENV
+      }
+    });
+  } catch (e: any) {
+    res.status(500).json({ 
+      error: e.message,
+      stack: e.stack 
+    });
+  }
+});
 
 server.listen(PORT, () => {
   console.log("Server listening on http://localhost:" + PORT);

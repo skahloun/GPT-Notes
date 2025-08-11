@@ -295,12 +295,16 @@
 
       async function loadStats() {
         try {
+          console.log('Loading admin stats...');
           const response = await fetch('/api/admin/stats', {
             headers: { 'Authorization': 'Bearer ' + adminToken }
           });
 
+          console.log('Stats response status:', response.status);
+
           if (response.ok) {
             const stats = await response.json();
+            console.log('Stats data:', stats);
             
             document.getElementById('statsGrid').innerHTML = `
               <div class="stat-card">
@@ -328,20 +332,29 @@
                 <div class="stat-label">New Users (7d)</div>
               </div>
             `;
+          } else {
+            const errorText = await response.text();
+            console.error('Stats API error:', errorText);
+            document.getElementById('statsGrid').innerHTML = `<p class="text-error">Error loading stats: ${response.status}</p>`;
           }
         } catch (error) {
           console.error('Failed to load stats:', error);
+          document.getElementById('statsGrid').innerHTML = `<p class="text-error">Failed to load stats: ${error.message}</p>`;
         }
       }
 
       async function loadUsers() {
         try {
+          console.log('Loading users...');
           const response = await fetch('/api/admin/users', {
             headers: { 'Authorization': 'Bearer ' + adminToken }
           });
 
+          console.log('Users response status:', response.status);
+
           if (response.ok) {
             const users = await response.json();
+            console.log('Users data:', users);
             
             let tableHTML = `
               <table class="users-table">
