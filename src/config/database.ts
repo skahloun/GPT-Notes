@@ -45,6 +45,9 @@ export class DatabaseAdapter {
       });
       await this.createSQLiteTables();
     }
+    
+    // Run migrations to ensure all columns exist
+    await this.runMigrations();
   }
 
   // Convert SQLite-style ? placeholders to PostgreSQL $1, $2, etc.
@@ -262,6 +265,62 @@ export class DatabaseAdapter {
         metadata TEXT
       );
     `);
+  }
+
+  // Run database migrations
+  private async runMigrations() {
+    try {
+      // Check if migration is needed by trying to query a new column
+      const testQuery = this.config.type === 'postgresql' 
+        ? "SELECT subscription_plan FROM users LIMIT 1"
+        : "SELECT subscription_plan FROM users LIMIT 1";
+      
+      try {
+        await this.all(testQuery);
+        console.log('Database schema is up to date');
+      } catch (e: any) {
+        if (e.message.includes('subscription_plan')) {
+          console.log('Running migrations to update database schema...');
+          
+          // Add missing columns
+          const columnsToAdd = this.config.type === 'postgresql' ? [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS paypal_subscription_id TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS hours_used_this_month DECIMAL(10,2) DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS hours_limit INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits_balance DECIMAL(10,2) DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_cycle_start TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_test_account INTEGER DEFAULT 0"
+          ] : [
+            "ALTER TABLE users ADD COLUMN subscription_plan TEXT",
+            "ALTER TABLE users ADD COLUMN subscription_status TEXT",
+            "ALTER TABLE users ADD COLUMN paypal_subscription_id TEXT",
+            "ALTER TABLE users ADD COLUMN hours_used_this_month REAL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN hours_limit INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN credits_balance REAL DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN billing_cycle_start TEXT",
+            "ALTER TABLE users ADD COLUMN is_test_account INTEGER DEFAULT 0"
+          ];
+          
+          for (const query of columnsToAdd) {
+            try {
+              await this.exec(query);
+              console.log('Executed:', query);
+            } catch (alterError: any) {
+              if (!alterError.message.includes('already exists') && 
+                  !alterError.message.includes('duplicate column')) {
+                console.error('Migration query failed:', query, alterError.message);
+              }
+            }
+          }
+          
+          console.log('Migrations completed');
+        }
+      }
+    } catch (error) {
+      console.error('Migration check failed:', error);
+    }
   }
 
   async close() {
