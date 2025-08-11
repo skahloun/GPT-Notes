@@ -61,3 +61,7 @@ audio/*.wav
 
 # Docker volumes
 postgres-data/
+
+# Sensitive configuration files
+RENDER_ENV_VARS.txt
+*_CREDENTIALS.txt

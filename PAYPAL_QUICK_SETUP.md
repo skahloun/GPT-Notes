@@ -1,16 +1,8 @@
 # PayPal Integration Quick Setup
 
-## 1. Update PayPal Client ID in pricing.html
+## 1. ✅ Update PayPal Client ID in pricing.html
 
-Replace line 341 in `/public/pricing.html`:
-```html
-<script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD"></script>
-```
-
-With your actual PayPal Client ID:
-```html
-<script src="https://www.paypal.com/sdk/js?client-id=AcVFoooBar123456789&currency=USD"></script>
-```
+**COMPLETED** - The PayPal Client ID has been added to `/public/pricing.html`
 
 ## 2. Create Subscription Plans in PayPal
 
@@ -35,8 +27,10 @@ const planDetails = {
 ## 4. Add Environment Variables on Render
 
 Add these to your Render service environment:
-- `PAYPAL_CLIENT_ID` = Your PayPal Client ID
-- `PAYPAL_SECRET` = Your PayPal Secret
+- `PAYPAL_CLIENT_ID` = AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1
+- `PAYPAL_SECRET` = ED9aMR-yYHUNfz6QU3u1qrx8GNllY0wDVzwVRqf4dCPx6icKIJT8jHOdK4O7ZXQvkvp8l1wXCI7oe5zq
+
+**Note**: Check RENDER_ENV_VARS.txt for the complete list of environment variables to add.
 
 ## 5. Test the Integration
 
