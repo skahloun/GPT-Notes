@@ -239,12 +239,14 @@ app.get("/api/admin/users", adminMiddleware, async (req: any, res) => {
     const users = await db.all(`
       SELECT 
         id, email, tier, created_at, last_login, total_sessions, 
-        total_aws_cost, total_openai_cost, is_admin
+        total_aws_cost, total_openai_cost, is_admin, is_test_account,
+        subscription_plan, subscription_status
       FROM users 
       ORDER BY created_at DESC
     `);
     res.json(users);
   } catch (e: any) {
+    console.error('Admin users query error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -392,9 +394,13 @@ app.get("/admin-portal", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "admin-portal.html"));
 });
 
-// Test admin page route
+// Test admin page routes
 app.get("/test-admin", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "test-admin.html"));
+});
+
+app.get("/admin-test", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin-test.html"));
 });
 
 // --- Cost calculation utilities ---

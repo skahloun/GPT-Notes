@@ -306,29 +306,37 @@
             const stats = await response.json();
             console.log('Stats data:', stats);
             
+            // Handle different response formats
+            const totalUsers = stats.total_users || stats.total_users || 0;
+            const activeUsers = stats.active_users || stats.active_users || 0;
+            const totalSessions = stats.total_sessions || stats.total_sessions || 0;
+            const totalAwsCost = stats.total_aws_cost || stats.total_aws_cost || 0;
+            const totalOpenaiCost = stats.total_openai_cost || stats.total_openai_cost || 0;
+            const recentUsers = stats.recent_users || stats.recent_users || 0;
+            
             document.getElementById('statsGrid').innerHTML = `
               <div class="stat-card">
-                <div class="stat-value">${stats.total_users || 0}</div>
+                <div class="stat-value">${totalUsers}</div>
                 <div class="stat-label">Total Users</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">${stats.active_users || 0}</div>
+                <div class="stat-value">${activeUsers}</div>
                 <div class="stat-label">Active Users (7d)</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">${stats.total_sessions || 0}</div>
+                <div class="stat-value">${totalSessions}</div>
                 <div class="stat-label">Total Sessions</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">$${(stats.total_aws_cost || 0).toFixed(2)}</div>
+                <div class="stat-value">$${Number(totalAwsCost).toFixed(2)}</div>
                 <div class="stat-label">Total AWS Cost</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">$${(stats.total_openai_cost || 0).toFixed(2)}</div>
+                <div class="stat-value">$${Number(totalOpenaiCost).toFixed(2)}</div>
                 <div class="stat-label">Total OpenAI Cost</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">${stats.recent_users || 0}</div>
+                <div class="stat-value">${recentUsers}</div>
                 <div class="stat-label">New Users (7d)</div>
               </div>
             `;

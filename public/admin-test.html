@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin API Test</title>
+</head>
+<body>
+  <h1>Admin API Test</h1>
+  <button onclick="testDebug()">Test Debug Endpoint</button>
+  <button onclick="testStats()">Test Stats Endpoint</button>
+  <button onclick="testUsers()">Test Users Endpoint</button>
+  <div id="result" style="white-space: pre-wrap; font-family: monospace; padding: 20px; background: #f0f0f0; margin: 20px 0;"></div>
+
+  <script>
+    const adminToken = localStorage.getItem('adminToken');
+    const resultDiv = document.getElementById('result');
+    
+    if (!adminToken) {
+      resultDiv.textContent = 'No admin token found. Please login to admin portal first.';
+    }
+    
+    async function testDebug() {
+      try {
+        const response = await fetch('/api/admin/debug', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        const data = await response.json();
+        resultDiv.textContent = 'Debug Response:\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Debug Error: ' + error.message;
+      }
+    }
+    
+    async function testStats() {
+      try {
+        const response = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        const data = await response.json();
+        resultDiv.textContent = 'Stats Response:\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Stats Error: ' + error.message;
+      }
+    }
+    
+    async function testUsers() {
+      try {
+        const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        const data = await response.json();
+        resultDiv.textContent = 'Users Response:\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Users Error: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
