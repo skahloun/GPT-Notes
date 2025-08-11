@@ -306,13 +306,13 @@
             const stats = await response.json();
             console.log('Stats data:', stats);
             
-            // Handle different response formats
-            const totalUsers = stats.total_users || stats.total_users || 0;
-            const activeUsers = stats.active_users || stats.active_users || 0;
-            const totalSessions = stats.total_sessions || stats.total_sessions || 0;
-            const totalAwsCost = stats.total_aws_cost || stats.total_aws_cost || 0;
-            const totalOpenaiCost = stats.total_openai_cost || stats.total_openai_cost || 0;
-            const recentUsers = stats.recent_users || stats.recent_users || 0;
+            // Handle different response formats and convert strings to numbers
+            const totalUsers = parseInt(stats.total_users) || 0;
+            const activeUsers = parseInt(stats.active_users) || 0;
+            const totalSessions = parseInt(stats.total_sessions) || 0;
+            const totalAwsCost = parseFloat(stats.total_aws_cost) || 0;
+            const totalOpenaiCost = parseFloat(stats.total_openai_cost) || 0;
+            const recentUsers = parseInt(stats.recent_users) || 0;
             
             document.getElementById('statsGrid').innerHTML = `
               <div class="stat-card">
@@ -385,17 +385,21 @@
             users.forEach(user => {
               const createdDate = new Date(user.created_at).toLocaleDateString();
               const lastLoginDate = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
-              const tierClass = user.is_test_account ? 'test' : (user.tier || 'free');
+              const isTestAccount = user.is_test_account === 1 || user.is_test_account === '1' || user.is_test_account === true;
+              const tierClass = isTestAccount ? 'test' : (user.tier || 'free');
               const plan = user.subscription_plan || 'none';
+              const totalSessions = parseInt(user.total_sessions) || 0;
+              const awsCost = parseFloat(user.total_aws_cost) || 0;
+              const openaiCost = parseFloat(user.total_openai_cost) || 0;
               
               tableHTML += `
                 <tr>
                   <td>${user.email}</td>
-                  <td><span class="tier-badge ${tierClass}">${user.is_test_account ? 'Test' : user.tier}</span></td>
+                  <td><span class="tier-badge ${tierClass}">${isTestAccount ? 'Test' : (user.tier || 'free')}</span></td>
                   <td>${plan}</td>
-                  <td>${user.total_sessions || 0}</td>
-                  <td class="cost-value">$${(user.total_aws_cost || 0).toFixed(4)}</td>
-                  <td class="cost-value">$${(user.total_openai_cost || 0).toFixed(4)}</td>
+                  <td>${totalSessions}</td>
+                  <td class="cost-value">$${awsCost.toFixed(4)}</td>
+                  <td class="cost-value">$${openaiCost.toFixed(4)}</td>
                   <td>${createdDate}</td>
                   <td>${lastLoginDate}</td>
                   <td>
@@ -414,10 +418,14 @@
             `;
 
             document.getElementById('usersTableContainer').innerHTML = tableHTML;
+          } else {
+            const errorText = await response.text();
+            console.error('Users API error:', errorText);
+            document.getElementById('usersTableContainer').innerHTML = `<p class="text-error">Error loading users: ${response.status}</p>`;
           }
         } catch (error) {
           console.error('Failed to load users:', error);
-          document.getElementById('usersTableContainer').innerHTML = '<p class="text-error">Failed to load users</p>';
+          document.getElementById('usersTableContainer').innerHTML = `<p class="text-error">Failed to load users: ${error.message}</p>`;
         }
       }
 
