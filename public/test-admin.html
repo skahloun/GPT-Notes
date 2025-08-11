@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Admin Login</title>
+</head>
+<body>
+  <h1>Test Admin Login</h1>
+  <button onclick="testLogin()">Test Admin Login</button>
+  <div id="result"></div>
+
+  <script>
+    async function testLogin() {
+      const resultDiv = document.getElementById('result');
+      
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            username: 'admin', 
+            password: 'admin123' 
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultDiv.innerHTML = '<p style="color: green;">Success! Token: ' + data.token + '</p>';
+          
+          // Test accessing admin endpoint
+          const testResponse = await fetch('/api/admin/stats', {
+            headers: { 'Authorization': 'Bearer ' + data.token }
+          });
+          
+          if (testResponse.ok) {
+            const stats = await testResponse.json();
+            resultDiv.innerHTML += '<p style="color: green;">Admin API works! Total users: ' + stats.total_users + '</p>';
+          } else {
+            resultDiv.innerHTML += '<p style="color: red;">Admin API failed: ' + testResponse.status + '</p>';
+          }
+        } else {
+          resultDiv.innerHTML = '<p style="color: red;">Login failed: ' + JSON.stringify(data) + '</p>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+      }
+    }
+  </script>
+</body>
+</html>

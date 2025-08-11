@@ -212,6 +212,9 @@
 
   <script>
     let adminToken = localStorage.getItem('adminToken');
+    
+    // Add this to prevent any auth redirects from main app
+    localStorage.setItem('skipAuthCheck', 'true');
 
     // Check if already logged in
     if (adminToken) {
@@ -245,6 +248,8 @@
       const password = document.getElementById('password').value;
       const errorEl = document.getElementById('loginError');
 
+      console.log('Attempting admin login with username:', username);
+
       try {
         const response = await fetch('/api/admin/login', {
           method: 'POST',
@@ -252,18 +257,24 @@
           body: JSON.stringify({ username, password })
         });
 
+        console.log('Login response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('Login successful, received token');
           adminToken = data.token;
           localStorage.setItem('adminToken', adminToken);
           showAdminPanel();
           loadAdminData();
         } else {
+          const error = await response.text();
+          console.error('Login failed:', error);
           errorEl.textContent = 'Invalid credentials';
           errorEl.style.display = 'block';
         }
       } catch (error) {
-        errorEl.textContent = 'Login failed';
+        console.error('Login error:', error);
+        errorEl.textContent = 'Login failed: ' + error.message;
         errorEl.style.display = 'block';
       }
     });

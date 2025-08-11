@@ -376,9 +376,18 @@ app.post("/api/google-disconnect", async (req: any, res) => {
 // --- Static ---
 app.use(express.static(path.join(process.cwd(), "public")));
 
-// Admin page route
+// Admin page routes
 app.get("/admin", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+  res.sendFile(path.join(process.cwd(), "public", "admin-portal.html"));
+});
+
+app.get("/admin-portal", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin-portal.html"));
+});
+
+// Test admin page route
+app.get("/test-admin", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "test-admin.html"));
 });
 
 // --- Cost calculation utilities ---
