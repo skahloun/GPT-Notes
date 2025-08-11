@@ -376,6 +376,11 @@ app.post("/api/google-disconnect", async (req: any, res) => {
 // --- Static ---
 app.use(express.static(path.join(process.cwd(), "public")));
 
+// Admin page route
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
+
 // --- Cost calculation utilities ---
 function calculateAWSTranscribeCost(durationMinutes: number): number {
   // AWS Transcribe pricing: $0.024 per minute (standard)

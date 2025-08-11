@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - Class Notes PWA</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-8);
+      padding: var(--space-6);
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-2xl);
+    }
+
+    .admin-title {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--space-6);
+      margin-bottom: var(--space-8);
+    }
+
+    .stat-card {
+      padding: var(--space-6);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-xl);
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-value {
+      font-size: var(--text-4xl);
+      font-weight: 700;
+      color: var(--primary-400);
+      margin-bottom: var(--space-2);
+    }
+
+    .stat-label {
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .users-section {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      backdrop-filter: blur(10px);
+    }
+
+    .section-title {
+      font-size: var(--text-2xl);
+      font-weight: 600;
+      margin-bottom: var(--space-6);
+      color: var(--text-primary);
+    }
+
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: var(--space-3) var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .users-table th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: var(--text-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .users-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tier-badge {
+      display: inline-block;
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .tier-badge.free {
+      background: rgba(107, 114, 128, 0.2);
+      color: var(--text-muted);
+    }
+
+    .tier-badge.premium {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--primary-400);
+    }
+
+    .tier-badge.test {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .tier-badge.payg {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .btn-small {
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--text-sm);
+    }
+
+    .loading {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--text-muted);
+    }
+
+    .login-form {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: var(--space-8);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-primary);
+      border-radius: var(--radius-2xl);
+      backdrop-filter: blur(12px);
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-bottom: var(--space-6);
+      color: var(--text-primary);
+    }
+
+    .cost-value {
+      font-family: monospace;
+      font-size: var(--text-sm);
+      color: var(--warning);
+    }
+  </style>
+</head>
+<body>
+  <div id="loginSection" class="admin-container">
+    <div class="login-form">
+      <h1 class="login-title">🔐 Admin Portal</h1>
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <div class="form-floating">
+            <input type="text" id="username" class="form-input" placeholder="Username" required>
+            <label for="username" class="form-label">Username</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="form-floating">
+            <input type="password" id="password" class="form-input" placeholder="Password" required>
+            <label for="password" class="form-label">Password</label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-full">Sign In</button>
+      </form>
+      <div id="loginError" class="text-error text-center mt-4" style="display: none;"></div>
+    </div>
+  </div>
+
+  <div id="adminSection" class="admin-container" style="display: none;">
+    <div class="admin-header">
+      <h1 class="admin-title">🛠️ Admin Dashboard</h1>
+      <button class="btn btn-error" onclick="adminLogout()">Sign Out</button>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+      <div class="loading">Loading statistics...</div>
+    </div>
+
+    <div class="users-section">
+      <h2 class="section-title">Users</h2>
+      <div id="usersTableContainer">
+        <div class="loading">Loading users...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = localStorage.getItem('adminToken');
+
+    // Check if already logged in
+    if (adminToken) {
+      verifyAdminToken();
+    }
+
+    async function verifyAdminToken() {
+      try {
+        const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+
+        if (response.ok) {
+          showAdminPanel();
+          loadAdminData();
+        } else {
+          localStorage.removeItem('adminToken');
+          adminToken = null;
+        }
+      } catch (error) {
+        localStorage.removeItem('adminToken');
+        adminToken = null;
+      }
+    }
+
+    // Admin login
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('loginError');
+
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          adminToken = data.token;
+          localStorage.setItem('adminToken', adminToken);
+          showAdminPanel();
+          loadAdminData();
+        } else {
+          errorEl.textContent = 'Invalid credentials';
+          errorEl.style.display = 'block';
+        }
+      } catch (error) {
+        errorEl.textContent = 'Login failed';
+        errorEl.style.display = 'block';
+      }
+    });
+
+    function showAdminPanel() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('adminSection').style.display = 'block';
+    }
+
+    function adminLogout() {
+      localStorage.removeItem('adminToken');
+      window.location.reload();
+    }
+
+    async function loadAdminData() {
+      loadStats();
+      loadUsers();
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+
+        if (response.ok) {
+          const stats = await response.json();
+          
+          document.getElementById('statsGrid').innerHTML = `
+            <div class="stat-card">
+              <div class="stat-value">${stats.total_users || 0}</div>
+              <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.active_users || 0}</div>
+              <div class="stat-label">Active Users (7d)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.total_sessions || 0}</div>
+              <div class="stat-label">Total Sessions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">$${(stats.total_aws_cost || 0).toFixed(2)}</div>
+              <div class="stat-label">Total AWS Cost</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">$${(stats.total_openai_cost || 0).toFixed(2)}</div>
+              <div class="stat-label">Total OpenAI Cost</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.recent_users || 0}</div>
+              <div class="stat-label">New Users (7d)</div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/admin/users', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+
+        if (response.ok) {
+          const users = await response.json();
+          
+          let tableHTML = `
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Tier</th>
+                  <th>Plan</th>
+                  <th>Sessions</th>
+                  <th>AWS Cost</th>
+                  <th>OpenAI Cost</th>
+                  <th>Created</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          users.forEach(user => {
+            const createdDate = new Date(user.created_at).toLocaleDateString();
+            const lastLoginDate = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+            const tierClass = user.is_test_account ? 'test' : (user.tier || 'free');
+            const plan = user.subscription_plan || 'none';
+            
+            tableHTML += `
+              <tr>
+                <td>${user.email}</td>
+                <td><span class="tier-badge ${tierClass}">${user.is_test_account ? 'Test' : user.tier}</span></td>
+                <td>${plan}</td>
+                <td>${user.total_sessions || 0}</td>
+                <td class="cost-value">$${(user.total_aws_cost || 0).toFixed(4)}</td>
+                <td class="cost-value">$${(user.total_openai_cost || 0).toFixed(4)}</td>
+                <td>${createdDate}</td>
+                <td>${lastLoginDate}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-secondary btn-small" onclick="viewUserDetails('${user.id}')">View</button>
+                    <button class="btn btn-error btn-small" onclick="deleteUser('${user.id}', '${user.email}')">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          });
+
+          tableHTML += `
+              </tbody>
+            </table>
+          `;
+
+          document.getElementById('usersTableContainer').innerHTML = tableHTML;
+        }
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        document.getElementById('usersTableContainer').innerHTML = '<p class="text-error">Failed to load users</p>';
+      }
+    }
+
+    async function viewUserDetails(userId) {
+      try {
+        const response = await fetch(`/api/admin/usage/${userId}`, {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('User details:', data);
+          alert('User details logged to console. Full details view coming soon.');
+        }
+      } catch (error) {
+        console.error('Failed to load user details:', error);
+      }
+    }
+
+    async function deleteUser(userId, email) {
+      if (!confirm(`Are you sure you want to delete user: ${email}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+
+        if (response.ok) {
+          loadUsers(); // Reload the users table
+        } else {
+          alert('Failed to delete user');
+        }
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+        alert('Failed to delete user');
+      }
+    }
+  </script>
+</body>
+</html>
