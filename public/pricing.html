@@ -214,8 +214,11 @@
             <h2>Option A – Pay-as-you-go</h2>
             <div class="price">$5/hour</div>
             <p class="text-secondary">Perfect for occasional use. Only pay for what you use.</p>
+            <p class="text-secondary" style="font-size: 0.875rem; margin-top: 0.5rem;">
+                <strong>Minimum purchase: $10</strong> (2 hours of credit)
+            </p>
             <button class="select-plan-btn" onclick="selectPlan('payg')">
-                Select Pay-as-you-go
+                Purchase 2 Hours ($10)
             </button>
         </div>
 
@@ -323,7 +326,7 @@
                 <p style="margin-bottom: 1.5rem;">Choose your payment amount:</p>
                 <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
                     <a href="https://www.paypal.me/skahloun/10" target="_blank" class="btn btn-primary" style="text-align: center;">
-                        Pay $10 (2 hours credit)
+                        Pay $10 (2 hours minimum credit)
                     </a>
                     <a href="https://www.paypal.me/skahloun/30" target="_blank" class="btn btn-primary" style="text-align: center;">
                         Pay $30 (Student Plan - Monthly)
@@ -495,9 +498,9 @@
                     return actions.order.create({
                         purchase_units: [{
                             amount: {
-                                value: '10.00' // $10 initial credit
+                                value: '10.00' // $10 minimum (2 hours credit)
                             },
-                            description: 'Class Notes PWA - Pay as you go credit'
+                            description: 'Class Notes PWA - 2 hours transcription credit ($5/hour)'
                         }],
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
