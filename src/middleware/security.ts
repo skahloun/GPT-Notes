@@ -29,11 +29,12 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://www.paypal.com", "https://www.paypalobjects.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://www.paypal.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "wss:", "https:"],
+      connectSrc: ["'self'", "wss:", "https:", "https://www.paypal.com", "https://api.paypal.com", "https://api.sandbox.paypal.com"],
+      frameSrc: ["'self'", "https://www.paypal.com", "https://www.sandbox.paypal.com"],
     },
   },
   hsts: {
