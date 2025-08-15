@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox Payment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .sandbox-accounts {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .test-button {
+            background: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        .test-button:hover {
+            background: #1565c0;
+        }
+        #paypal-button-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PayPal Sandbox Test</h1>
+        
+        <div class="info">
+            <h3>How this works:</h3>
+            <p>1. This page uses your sandbox client ID</p>
+            <p>2. Click the button below to load PayPal</p>
+            <p>3. Use the personal sandbox account to pay</p>
+            <p>4. No ad blockers will interfere here</p>
+        </div>
+        
+        <div class="sandbox-accounts">
+            <h3>Your Sandbox Accounts:</h3>
+            <p><strong>Personal (buyer):</strong><br>
+            Email: sb-3za1d45220243@personal.example.com<br>
+            Password: z2Tx_6Id</p>
+            
+            <p><strong>Business (receiver):</strong><br>
+            Email: sb-oxdnm45215491@business.example.com</p>
+        </div>
+        
+        <button id="load-paypal" class="test-button">Load PayPal Sandbox</button>
+        
+        <div id="paypal-button-container"></div>
+    </div>
+
+    <script>
+        document.getElementById('load-paypal').addEventListener('click', function() {
+            this.style.display = 'none';
+            
+            // Load PayPal SDK
+            const script = document.createElement('script');
+            script.src = 'https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD';
+            
+            script.onload = function() {
+                // Render PayPal button
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: '10.00'
+                                },
+                                description: 'Test Sandbox Payment'
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            alert('Success! Transaction completed by ' + details.payer.name.given_name);
+                            console.log('Full details:', details);
+                        });
+                    },
+                    onError: function(err) {
+                        console.error('Error:', err);
+                        alert('Error: ' + err);
+                    }
+                }).render('#paypal-button-container');
+            };
+            
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>
