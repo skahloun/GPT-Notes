@@ -62,7 +62,7 @@
     </div>
 
     <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj&currency=USD&intent=capture&disable-funding=credit,card&debug=true"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD&intent=capture&disable-funding=credit,card&debug=true"></script>
     
     <script>
         const log = (message, type = 'info') => {
@@ -76,9 +76,15 @@
         
         // Display configuration
         document.getElementById('config-info').innerHTML = `
-            <p><strong>Client ID:</strong> ${window.location.href.includes('localhost') ? 'LOCAL' : 'PRODUCTION'}</p>
+            <p><strong>Environment:</strong> SANDBOX</p>
+            <p><strong>Client ID:</strong> Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf</p>
             <p><strong>PayPal SDK Loaded:</strong> <span id="sdk-status">Checking...</span></p>
             <p><strong>Auth Token:</strong> ${localStorage.getItem('authToken') ? 'Present' : 'Missing'}</p>
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px;">
+                <p><strong>Sandbox Test Account:</strong></p>
+                <p>Email: sb-zuxhm45215481@personal.example.com</p>
+                <p style="font-size: 0.875rem;">Get password from <a href="https://developer.paypal.com/dashboard/accounts" target="_blank">PayPal Developer Dashboard</a></p>
+            </div>
         `;
         
         // Check PayPal SDK

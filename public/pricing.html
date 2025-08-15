@@ -232,6 +232,13 @@
         <div class="pricing-header">
             <h1>Choose Your Plan</h1>
             <p class="text-secondary">Select the plan that works best for your needs</p>
+            <div id="sandbox-notice" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-md);">
+                <p style="color: var(--warning); font-weight: 600;">🧪 Sandbox Mode Active</p>
+                <p style="font-size: 0.875rem;">You're in test mode. Use these sandbox credentials:</p>
+                <p style="font-size: 0.875rem;"><strong>Email:</strong> sb-zuxhm45215481@personal.example.com</p>
+                <p style="font-size: 0.875rem;"><strong>Password:</strong> Use your sandbox account password</p>
+                <p style="font-size: 0.75rem; margin-top: 0.5rem;">Get sandbox accounts at <a href="https://developer.paypal.com/dashboard/accounts" target="_blank">PayPal Developer</a></p>
+            </div>
         </div>
 
         <!-- Pay as you go option -->
@@ -379,7 +386,15 @@
     <script>
         // Try to load PayPal SDK with error handling
         const script = document.createElement('script');
-        script.src = 'https://www.paypal.com/sdk/js?client-id=AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj&currency=USD&intent=capture&disable-funding=credit,card';
+        // Using sandbox client ID for testing
+        const SANDBOX_CLIENT_ID = 'Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf';
+        const LIVE_CLIENT_ID = 'AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj';
+        
+        // Use sandbox for now until live account is approved
+        const CLIENT_ID = SANDBOX_CLIENT_ID;
+        const ENVIRONMENT = 'sandbox'; // Change to 'live' when ready
+        
+        script.src = `https://www.paypal.com/sdk/js?client-id=${CLIENT_ID}&currency=USD&intent=capture&disable-funding=credit,card`;
         script.onerror = function() {
             console.error('PayPal SDK failed to load via script tag');
             // Show the direct payment option immediately
@@ -741,9 +756,15 @@
         
         // Check if PayPal SDK loaded on page load
         window.addEventListener('load', function() {
+            // Show sandbox notice if in sandbox mode
+            if (ENVIRONMENT === 'sandbox') {
+                document.getElementById('sandbox-notice').style.display = 'block';
+            }
+            
             setTimeout(() => {
                 if (typeof paypal !== 'undefined') {
                     console.log('✅ PayPal SDK loaded successfully');
+                    console.log('Environment:', ENVIRONMENT);
                 } else {
                     console.error('❌ PayPal SDK failed to load');
                     // Show prominent error message
