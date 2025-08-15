@@ -814,6 +814,55 @@ app.post("/api/add-credit", authMiddleware, async (req:any, res) => {
   }
 });
 
+app.post("/api/purchase-plan", authMiddleware, async (req:any, res) => {
+  try {
+    const { orderId, plan, amount, payerEmail } = req.body;
+    
+    // Map plan names to database values
+    const planMapping: any = {
+      'Student Plan': { plan: 'student', hours: 10 },
+      'Premium Plan': { plan: 'premium', hours: 30 },
+      'Unlimited Plan': { plan: 'unlimited', hours: 50 }
+    };
+    
+    const planInfo = planMapping[plan];
+    if (!planInfo) {
+      throw new Error('Invalid plan selected');
+    }
+    
+    // Update user's subscription
+    await db.run(
+      `UPDATE users SET 
+        subscription_plan = ?, 
+        subscription_status = 'active',
+        subscription_start_date = datetime('now'),
+        subscription_end_date = datetime('now', '+1 month'),
+        hours_limit = ?,
+        hours_used_this_month = 0,
+        last_payment_date = datetime('now'),
+        last_payment_amount = ?
+      WHERE id = ?`,
+      [planInfo.plan, planInfo.hours, amount, req.user.uid]
+    );
+    
+    // Record the payment
+    await db.run(
+      `INSERT INTO payments (user_id, amount, payment_type, payment_method, transaction_id, created_at)
+       VALUES (?, ?, 'subscription', 'paypal', ?, datetime('now'))`,
+      [req.user.uid, amount, orderId]
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Plan activated successfully',
+      plan: planInfo.plan,
+      hoursLimit: planInfo.hours
+    });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
   try {
     const user = await db.get("SELECT subscription_plan, subscription_status, hours_used_this_month, hours_limit, credits_balance, is_test_account FROM users WHERE id=?", [req.user.uid]);

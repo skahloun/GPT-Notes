@@ -291,7 +291,11 @@ export class DatabaseAdapter {
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS hours_limit INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS credits_balance DECIMAL(10,2) DEFAULT 0",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_cycle_start TIMESTAMP",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_test_account INTEGER DEFAULT 0"
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_test_account INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_start_date TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_date TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_amount DECIMAL(10,2)"
           ] : [
             "ALTER TABLE users ADD COLUMN subscription_plan TEXT",
             "ALTER TABLE users ADD COLUMN subscription_status TEXT",
@@ -300,7 +304,11 @@ export class DatabaseAdapter {
             "ALTER TABLE users ADD COLUMN hours_limit INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN credits_balance REAL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN billing_cycle_start TEXT",
-            "ALTER TABLE users ADD COLUMN is_test_account INTEGER DEFAULT 0"
+            "ALTER TABLE users ADD COLUMN is_test_account INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN subscription_start_date TEXT",
+            "ALTER TABLE users ADD COLUMN subscription_end_date TEXT",
+            "ALTER TABLE users ADD COLUMN last_payment_date TEXT",
+            "ALTER TABLE users ADD COLUMN last_payment_amount REAL"
           ];
           
           for (const query of columnsToAdd) {
