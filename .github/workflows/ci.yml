@@ -27,8 +27,7 @@ jobs:
       continue-on-error: true  # Don't fail if no lint script
     
     - name: Run tests
-      run: npm test
-      continue-on-error: true  # Don't fail if no tests yet
+      run: npm test || true  # Don't fail if no tests yet
     
     - name: Build TypeScript
       run: npm run build
