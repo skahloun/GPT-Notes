@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Configuration Verification</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .verify-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .step {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--surface-glass);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+        }
+        .step h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid rgba(239, 68, 68, 0.5);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+        .success-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+        code {
+            background: rgba(0,0,0,0.3);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .checklist li::before {
+            content: "□";
+            color: var(--primary);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="verify-container">
+        <h1>PayPal Configuration Verification</h1>
+        
+        <div class="error-box">
+            <h3>🚫 Current Issue</h3>
+            <p>Your PayPal Client ID is returning a <strong>400 Bad Request</strong> error.</p>
+            <p>Client ID: <code>Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI</code></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Verify Your PayPal App Status</h3>
+            <p>Log in to PayPal Developer Dashboard and check:</p>
+            <ol>
+                <li>Go to <a href="https://developer.paypal.com/dashboard/applications/live" target="_blank">PayPal Developer Dashboard</a></li>
+                <li>Find your app (should be named something like "Class Notes" or similar)</li>
+                <li>Verify the app status is <strong>Active</strong> (not Suspended or Deleted)</li>
+                <li>Check if the Client ID matches: <code>Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI</code></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Check App Settings</h3>
+            <p>In your PayPal app settings, verify these configurations:</p>
+            <ul class="checklist">
+                <li><strong>App Type:</strong> Should be "Merchant" or "Platform"</li>
+                <li><strong>Live App Status:</strong> Should show "Active"</li>
+                <li><strong>Return URLs:</strong> Add <code>https://gpt-notes-gbtn.onrender.com</code></li>
+                <li><strong>Features:</strong> Ensure "Accept payments" is enabled</li>
+                <li><strong>PayPal Checkout:</strong> Should be enabled</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Quick Solution - Create a New App</h3>
+            <p>If the above doesn't work, the fastest solution is to create a new PayPal app:</p>
+            <ol>
+                <li>Go to <a href="https://developer.paypal.com/dashboard/applications/live" target="_blank">PayPal Apps</a></li>
+                <li>Click "Create App"</li>
+                <li>Name it "Class Notes PWA"</li>
+                <li>Select "Merchant" as app type</li>
+                <li>Click "Create App"</li>
+                <li>Copy the new <strong>Live Client ID</strong></li>
+                <li>Send me the new Client ID to update your site</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Alternative: Use PayPal Sandbox for Testing</h3>
+            <p>While we fix the live integration, you can test with sandbox:</p>
+            <div id="sandbox-test-container" style="margin-top: 1rem;">
+                <button onclick="testSandbox()" class="btn btn-primary">Test Sandbox Integration</button>
+                <div id="sandbox-result" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <div class="success-box">
+            <h3>✅ Working Alternative</h3>
+            <p>While we fix the PayPal integration, you can use these payment methods:</p>
+            <ul>
+                <li><strong>PayPal.me:</strong> <a href="https://paypal.me/skahloun" target="_blank">paypal.me/skahloun</a></li>
+                <li><strong>Direct PayPal:</strong> Send to <code>skahloun@gmail.com</code></li>
+            </ul>
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem;">
+                Include your email address in the payment note for manual activation.
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/pricing.html" class="btn btn-secondary">Back to Pricing</a>
+        </div>
+    </div>
+
+    <script>
+        function testSandbox() {
+            const resultDiv = document.getElementById('sandbox-result');
+            resultDiv.innerHTML = '<p>Testing sandbox integration...</p>';
+            
+            // Load sandbox SDK
+            const script = document.createElement('script');
+            script.src = 'https://www.paypal.com/sdk/js?client-id=sb&currency=USD';
+            script.onload = function() {
+                resultDiv.innerHTML = `
+                    <div class="success-box">
+                        <p>✅ Sandbox SDK loaded successfully!</p>
+                        <p>The generic sandbox integration works. The issue is specific to your Client ID.</p>
+                    </div>
+                `;
+                
+                // Render a test button
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: { value: '1.00' }
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        alert('Sandbox test successful! The integration works.');
+                    }
+                }).render('#sandbox-result');
+            };
+            script.onerror = function() {
+                resultDiv.innerHTML = '<p class="error">Failed to load sandbox SDK</p>';
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Check current client ID status
+        fetch('https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI', {
+            method: 'HEAD'
+        }).then(response => {
+            console.log('Client ID check response:', response.status);
+        }).catch(error => {
+            console.error('Client ID check error:', error);
+        });
+    </script>
+</body>
+</html>
