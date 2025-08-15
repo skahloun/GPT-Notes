@@ -546,11 +546,23 @@
                             })
                         }).then(response => {
                             if (response.ok) {
-                                alert('Payment successful! Your plan is now active.');
-                                window.location.href = '/';
+                                return response.json().then(data => {
+                                    alert('Payment successful! Your plan is now active.');
+                                    window.location.href = '/';
+                                });
                             } else {
-                                alert('Payment processed but activation failed. Please contact support.');
+                                return response.text().then(text => {
+                                    console.error('Payment activation failed:', response.status, text);
+                                    if (response.status === 404) {
+                                        alert('Payment was processed by PayPal, but our server is updating. Please refresh the page in a minute and your plan should be active. If not, contact support with order ID: ' + data.orderID);
+                                    } else {
+                                        alert('Payment processed but activation failed. Please contact support with order ID: ' + data.orderID);
+                                    }
+                                });
                             }
+                        }).catch(error => {
+                            console.error('Network error:', error);
+                            alert('Payment may have been processed, but we couldn\'t confirm activation. Please refresh the page to check your plan status.');
                         });
                     });
                 },
@@ -617,8 +629,15 @@
                             })
                         }).then(response => {
                             if (response.ok) {
+                                alert('Payment successful! $10 credit added to your account.');
                                 window.location.href = '/';
+                            } else {
+                                console.error('Credit activation failed:', response.status);
+                                alert('Payment was processed, but credits couldn\'t be added. Please contact support with order ID: ' + data.orderID);
                             }
+                        }).catch(error => {
+                            console.error('Network error:', error);
+                            alert('Payment may have been processed, but we couldn\'t confirm. Please refresh the page to check your credit balance.');
                         });
                     });
                 },
