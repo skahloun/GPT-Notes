@@ -19,10 +19,14 @@ import { usageTracker } from "./services/usage-tracker";
 import { db } from "./config/database";
 import { paymentService } from "./services/payment.service";
 import { PayPalWebhookService } from "./services/paypal-webhook.service";
+import { securityHeaders } from "./middleware/security";
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws/audio" });
+
+// Apply security headers (including CSP for PayPal)
+app.use(securityHeaders);
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "20mb" }));
