@@ -286,10 +286,16 @@
         </div>
 
         <div id="paypal-button-container"></div>
+        
+        <div style="text-align: center; margin-top: 1rem;">
+            <p class="text-secondary" style="font-size: 0.875rem;">
+                Having trouble logging in? Try clearing your browser cookies for PayPal or use a different browser.
+            </p>
+        </div>
     </div>
 
     <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&commit=false"></script>
     
     <script>
         let selectedPlan = null;
@@ -359,6 +365,12 @@
         function createPayAsYouGo() {
             // For pay-as-you-go, we'll create an order for initial credits
             paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'paypal'
+                },
                 createOrder: function(data, actions) {
                     return actions.order.create({
                         purchase_units: [{
@@ -366,7 +378,11 @@
                                 value: '10.00' // $10 initial credit
                             },
                             description: 'Class Notes PWA - Pay as you go credit'
-                        }]
+                        }],
+                        application_context: {
+                            shipping_preference: 'NO_SHIPPING',
+                            user_action: 'PAY_NOW'
+                        }
                     });
                 },
                 onApprove: function(data, actions) {
