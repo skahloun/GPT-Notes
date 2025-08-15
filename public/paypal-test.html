@@ -41,8 +41,8 @@
         
         <div class="test-info">
             <h3>Current Configuration</h3>
-            <p><strong>Client ID:</strong> Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI</p>
-            <p><strong>Your Client ID:</strong> ✅ Confirmed - This is YOUR newly created app client ID</p>
+            <p><strong>Client ID:</strong> AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj</p>
+            <p><strong>Your Client ID:</strong> ✅ Confirmed - This is YOUR live app client ID</p>
             <p><strong>Environment:</strong> <span id="environment">Live (Production)</span></p>
             <p><strong>Domain:</strong> <span id="current-domain"></span></p>
             <p><strong>Sandbox Email:</strong> sb-zuxhm45215481@business.example.com</p>
@@ -93,13 +93,13 @@
     </div>
 
     <!-- Test 1: Current Config -->
-    <script src="https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI&currency=USD&debug=true"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj&currency=USD&debug=true"></script>
     
     <script>
         // Check environment
         function checkEnvironment() {
             // This is a heuristic - sandbox client IDs often start with 'sb' or contain 'sandbox'
-            const clientId = 'Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI';
+            const clientId = 'AbIwl5_VLf_ZH2OizJ7rvFQOT70CVT9GCLy8eFFUvHUb8ITUmAhlBix05nEL8reiXiJn-hDGei9uhvjj';
             const isSandbox = clientId.includes('sb') || clientId.includes('sandbox');
             
             document.getElementById('environment').textContent = isSandbox ? 'Sandbox (Test)' : 'Live (Production)';
