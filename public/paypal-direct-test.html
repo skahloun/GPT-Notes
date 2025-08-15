@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct PayPal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #388e3c;
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Direct PayPal SDK Test</h1>
+        
+        <div class="test-section">
+            <h2>Test 1: Load PayPal with Generic Sandbox ID</h2>
+            <p>This uses the generic sandbox client ID "sb"</p>
+            <div id="test1-result"></div>
+            <div id="paypal-button-1"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test 2: Load PayPal with Your Sandbox ID</h2>
+            <p>This uses your specific sandbox client ID</p>
+            <div id="test2-result"></div>
+            <div id="paypal-button-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test 1: Generic sandbox
+        console.log('Starting Test 1: Generic sandbox');
+        const script1 = document.createElement('script');
+        script1.src = 'https://www.paypal.com/sdk/js?client-id=sb&currency=USD';
+        script1.onload = function() {
+            console.log('Test 1: PayPal SDK loaded with generic sandbox');
+            document.getElementById('test1-result').innerHTML = '<div class="success">✓ SDK loaded successfully</div>';
+            
+            try {
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: { value: '1.00' }
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            alert('Test 1 Payment completed!');
+                        });
+                    }
+                }).render('#paypal-button-1');
+                document.getElementById('test1-result').innerHTML += '<div class="success">✓ Button rendered</div>';
+            } catch (e) {
+                document.getElementById('test1-result').innerHTML += '<div class="error">✗ Button render failed: ' + e.message + '</div>';
+            }
+        };
+        script1.onerror = function(e) {
+            console.error('Test 1: Failed to load SDK', e);
+            document.getElementById('test1-result').innerHTML = '<div class="error">✗ Failed to load PayPal SDK</div>';
+        };
+        document.head.appendChild(script1);
+        
+        // Test 2: Your sandbox ID (delayed to avoid conflicts)
+        setTimeout(() => {
+            console.log('Starting Test 2: Your sandbox ID');
+            const script2 = document.createElement('script');
+            script2.src = 'https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD';
+            script2.onload = function() {
+                console.log('Test 2: PayPal SDK loaded with your sandbox ID');
+                document.getElementById('test2-result').innerHTML = '<div class="success">✓ SDK loaded successfully</div>';
+                
+                // Create a new namespace to avoid conflicts
+                if (window.paypal) {
+                    try {
+                        window.paypal.Buttons({
+                            createOrder: function(data, actions) {
+                                return actions.order.create({
+                                    purchase_units: [{
+                                        amount: { value: '1.00' }
+                                    }]
+                                });
+                            },
+                            onApprove: function(data, actions) {
+                                return actions.order.capture().then(function(details) {
+                                    alert('Test 2 Payment completed!');
+                                });
+                            }
+                        }).render('#paypal-button-2');
+                        document.getElementById('test2-result').innerHTML += '<div class="success">✓ Button rendered</div>';
+                    } catch (e) {
+                        document.getElementById('test2-result').innerHTML += '<div class="error">✗ Button render failed: ' + e.message + '</div>';
+                    }
+                }
+            };
+            script2.onerror = function(e) {
+                console.error('Test 2: Failed to load SDK', e);
+                document.getElementById('test2-result').innerHTML = '<div class="error">✗ Failed to load PayPal SDK (Check console for details)</div>';
+            };
+            document.head.appendChild(script2);
+        }, 3000);
+    </script>
+</body>
+</html>
