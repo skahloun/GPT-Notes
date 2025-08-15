@@ -78,18 +78,39 @@
         
         <button id="load-paypal" class="test-button">Load PayPal Sandbox</button>
         
+        <div id="status" style="margin: 20px 0; padding: 10px; display: none;"></div>
         <div id="paypal-button-container"></div>
     </div>
 
     <script>
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.style.background = isError ? '#ffebee' : '#e8f5e9';
+            status.style.color = isError ? '#c62828' : '#2e7d32';
+            status.innerHTML = message;
+        }
+        
         document.getElementById('load-paypal').addEventListener('click', function() {
-            this.style.display = 'none';
+            console.log('Button clicked');
+            showStatus('Loading PayPal SDK...');
+            this.disabled = true;
+            this.textContent = 'Loading...';
             
             // Load PayPal SDK
             const script = document.createElement('script');
             script.src = 'https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD';
             
             script.onload = function() {
+                console.log('PayPal SDK loaded successfully');
+                showStatus('PayPal SDK loaded! Rendering button...');
+                
+                // Check if paypal object exists
+                if (typeof paypal === 'undefined') {
+                    showStatus('Error: PayPal object not found after loading', true);
+                    return;
+                }
+                
                 // Render PayPal button
                 paypal.Buttons({
                     createOrder: function(data, actions) {
@@ -112,10 +133,30 @@
                         console.error('Error:', err);
                         alert('Error: ' + err);
                     }
-                }).render('#paypal-button-container');
+                }).render('#paypal-button-container').then(function() {
+                    showStatus('PayPal button rendered successfully!');
+                }).catch(function(err) {
+                    showStatus('Error rendering PayPal button: ' + err.message, true);
+                    console.error('Render error:', err);
+                });
+            };
+            
+            script.onerror = function(error) {
+                console.error('Failed to load PayPal SDK:', error);
+                showStatus('Failed to load PayPal SDK. This could be due to network restrictions or CSP policies.', true);
             };
             
             document.head.appendChild(script);
+            
+            // Also check with fetch to see if we can reach PayPal
+            fetch('https://www.paypal.com/sdk/js?client-id=test', { method: 'HEAD' })
+                .then(response => {
+                    console.log('PayPal SDK endpoint reachable:', response.status);
+                })
+                .catch(error => {
+                    console.error('Cannot reach PayPal:', error);
+                    showStatus('Network error: Cannot reach PayPal servers', true);
+                });
         });
     </script>
 </body>
