@@ -513,6 +513,7 @@
                     label: 'paypal'
                 },
                 createOrder: function(data, actions) {
+                    console.log('Creating PayPal order for:', selectedPlan);
                     return actions.order.create({
                         purchase_units: [{
                             amount: {
@@ -527,10 +528,18 @@
                             return_url: window.location.origin + '/index.html',
                             cancel_url: window.location.origin + '/pricing.html'
                         }
+                    }).then(function(orderId) {
+                        console.log('PayPal order created:', orderId);
+                        return orderId;
+                    }).catch(function(err) {
+                        console.error('Error creating PayPal order:', err);
+                        throw err;
                     });
                 },
                 onApprove: function(data, actions) {
+                    console.log('PayPal payment approved, capturing...', data);
                     return actions.order.capture().then(function(details) {
+                        console.log('PayPal payment captured:', details);
                         // Save payment to your backend
                         fetch('/api/purchase-plan', {
                             method: 'POST',

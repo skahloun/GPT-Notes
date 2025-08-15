@@ -10,7 +10,8 @@
     "start": "node dist/app.js",
     "test": "echo \"No tests configured yet\" && exit 0",
     "lint": "echo 'No linter configured yet' && exit 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "activate-plan": "ts-node src/scripts/activate-plan.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cost-explorer": "^3.645.0",
