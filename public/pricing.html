@@ -314,7 +314,7 @@
     </div>
 
     <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&disable-funding=credit,card&debug=true"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI&currency=USD&intent=capture&disable-funding=credit,card"></script>
     
     <script>
         let selectedPlan = null;
@@ -405,13 +405,6 @@
                             return_url: window.location.origin + '/index.html',
                             cancel_url: window.location.origin + '/pricing.html'
                         }
-                    });
-                },
-                onClick: function(data, actions) {
-                    console.log('PayPal button clicked - clearing any stale sessions');
-                    // Clear any PayPal cookies that might be causing issues
-                    document.cookie.split(";").forEach(function(c) { 
-                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
                     });
                 },
                 onApprove: function(data, actions) {
