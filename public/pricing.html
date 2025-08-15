@@ -291,11 +291,27 @@
             <p class="text-secondary" style="font-size: 0.875rem;">
                 Having trouble logging in? Try clearing your browser cookies for PayPal or use a different browser.
             </p>
+            <div style="margin-top: 1rem;">
+                <a href="https://www.paypal.com/signin" target="_blank" class="btn btn-secondary btn-sm" style="margin-right: 0.5rem;">
+                    Log in to PayPal first
+                </a>
+                <button onclick="clearPayPalSession()" class="btn btn-secondary btn-sm">
+                    Clear PayPal Session
+                </button>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <p style="font-weight: 600; margin-bottom: 0.5rem;">Alternative Payment Method:</p>
+                <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">If PayPal login continues to fail, you can send payment directly to:</p>
+                <code style="display: block; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 0.5rem;">
+                    skahloun@gmail.com
+                </code>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Include your email address in the payment note, and we'll activate your account manually.</p>
+            </div>
         </div>
     </div>
 
     <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&commit=false"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&commit=false&debug=true"></script>
     
     <script>
         let selectedPlan = null;
@@ -371,6 +387,7 @@
                     shape: 'rect',
                     label: 'paypal'
                 },
+                fundingSource: paypal.FUNDING.PAYPAL,
                 createOrder: function(data, actions) {
                     return actions.order.create({
                         purchase_units: [{
@@ -456,6 +473,30 @@
         
         // Check if this is a test account
         checkTestAccount();
+        
+        // Function to clear PayPal session
+        function clearPayPalSession() {
+            // Clear all PayPal related storage
+            const cookies = document.cookie.split(';');
+            cookies.forEach(cookie => {
+                const eqPos = cookie.indexOf('=');
+                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                if (name.includes('paypal') || name.includes('PAYPAL')) {
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.paypal.com`;
+                }
+            });
+            
+            // Clear localStorage items
+            for (let key in localStorage) {
+                if (key.toLowerCase().includes('paypal')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            alert('PayPal session cleared. Please refresh the page and try again.');
+            window.location.reload();
+        }
     </script>
 </body>
 </html>
