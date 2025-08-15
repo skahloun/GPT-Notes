@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Connectivity Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .test-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--surface-glass);
+            border-radius: var(--radius-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .status.success { color: #10b981; }
+        .status.error { color: #ef4444; }
+        .status.loading { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Network Connectivity Test</h1>
+        <p>This page tests connectivity to various payment services:</p>
+        
+        <div class="test-item">
+            <span>PayPal SDK (Current Client ID)</span>
+            <span id="paypal-status" class="status loading">Testing...</span>
+        </div>
+        
+        <div class="test-item">
+            <span>PayPal SDK (Generic Test)</span>
+            <span id="paypal-generic-status" class="status loading">Testing...</span>
+        </div>
+        
+        <div class="test-item">
+            <span>PayPal.com Website</span>
+            <span id="paypal-website-status" class="status loading">Testing...</span>
+        </div>
+        
+        <div class="test-item">
+            <span>Stripe (Alternative Payment)</span>
+            <span id="stripe-status" class="status loading">Testing...</span>
+        </div>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md);">
+            <h3>Results:</h3>
+            <div id="results-summary"></div>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="/pricing.html" class="btn btn-secondary">Back to Pricing</a>
+        </div>
+    </div>
+
+    <script>
+        // Test PayPal SDK with your client ID
+        function testPayPalSDK() {
+            const script = document.createElement('script');
+            script.src = 'https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI';
+            script.onload = function() {
+                document.getElementById('paypal-status').textContent = '✓ Loaded';
+                document.getElementById('paypal-status').className = 'status success';
+                updateSummary();
+            };
+            script.onerror = function() {
+                document.getElementById('paypal-status').textContent = '✗ Failed';
+                document.getElementById('paypal-status').className = 'status error';
+                updateSummary();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Test PayPal SDK with generic client ID
+        function testPayPalGeneric() {
+            const script = document.createElement('script');
+            script.src = 'https://www.paypal.com/sdk/js?client-id=sb';
+            script.onload = function() {
+                document.getElementById('paypal-generic-status').textContent = '✓ Loaded';
+                document.getElementById('paypal-generic-status').className = 'status success';
+                updateSummary();
+            };
+            script.onerror = function() {
+                document.getElementById('paypal-generic-status').textContent = '✗ Failed';
+                document.getElementById('paypal-generic-status').className = 'status error';
+                updateSummary();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Test PayPal website
+        function testPayPalWebsite() {
+            // We'll use an image from PayPal as a proxy for connectivity
+            const img = new Image();
+            img.src = 'https://www.paypalobjects.com/webstatic/icon/pp258.png';
+            img.onload = function() {
+                document.getElementById('paypal-website-status').textContent = '✓ Accessible';
+                document.getElementById('paypal-website-status').className = 'status success';
+                updateSummary();
+            };
+            img.onerror = function() {
+                document.getElementById('paypal-website-status').textContent = '✗ Blocked';
+                document.getElementById('paypal-website-status').className = 'status error';
+                updateSummary();
+            };
+        }
+        
+        // Test Stripe
+        function testStripe() {
+            const script = document.createElement('script');
+            script.src = 'https://js.stripe.com/v3/';
+            script.onload = function() {
+                document.getElementById('stripe-status').textContent = '✓ Loaded';
+                document.getElementById('stripe-status').className = 'status success';
+                updateSummary();
+            };
+            script.onerror = function() {
+                document.getElementById('stripe-status').textContent = '✗ Failed';
+                document.getElementById('stripe-status').className = 'status error';
+                updateSummary();
+            };
+            document.head.appendChild(script);
+        }
+        
+        function updateSummary() {
+            const results = document.querySelectorAll('.status');
+            let loaded = 0;
+            let failed = 0;
+            
+            results.forEach(result => {
+                if (result.textContent.includes('✓')) loaded++;
+                if (result.textContent.includes('✗')) failed++;
+            });
+            
+            const summary = document.getElementById('results-summary');
+            
+            if (failed === 0 && loaded === results.length) {
+                summary.innerHTML = '<p style="color: #10b981;">✓ All payment services are accessible. The issue might be temporary.</p>';
+            } else if (failed === results.length) {
+                summary.innerHTML = '<p style="color: #ef4444;">✗ All payment services are blocked. Check your network settings or VPN.</p>';
+            } else if (document.getElementById('paypal-status').textContent.includes('✗')) {
+                summary.innerHTML = '<p style="color: #f59e0b;">⚠️ PayPal specifically seems to be blocked. Consider using alternative payment methods.</p>';
+            } else {
+                summary.innerHTML = '<p style="color: #f59e0b;">⚠️ Some services are blocked. This might be a network restriction.</p>';
+            }
+        }
+        
+        // Run all tests
+        testPayPalSDK();
+        setTimeout(testPayPalGeneric, 500);
+        setTimeout(testPayPalWebsite, 1000);
+        setTimeout(testStripe, 1500);
+    </script>
+</body>
+</html>

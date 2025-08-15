@@ -346,8 +346,51 @@
         </div>
     </div>
 
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI&currency=USD&intent=capture&disable-funding=credit,card"></script>
+    <!-- PayPal SDK with fallback -->
+    <script>
+        // Try to load PayPal SDK with error handling
+        const script = document.createElement('script');
+        script.src = 'https://www.paypal.com/sdk/js?client-id=Abqc58IRSd0qwd85KJaklJkudlnxkVX0WofGOsxAgna7nZZ1c8RuTyholMHG9JIuljpMY-R8NKHdXIiI&currency=USD&intent=capture&disable-funding=credit,card';
+        script.onerror = function() {
+            console.error('PayPal SDK failed to load via script tag');
+            // Show the direct payment option immediately
+            showPayPalError();
+        };
+        document.head.appendChild(script);
+        
+        function showPayPalError() {
+            const container = document.getElementById('paypal-button-container');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="background: rgba(245, 158, 11, 0.1); border: 2px solid rgba(245, 158, 11, 0.5); padding: 2rem; border-radius: 8px; text-align: center;">
+                    <h3 style="color: #f59e0b; margin-bottom: 1rem;">⚠️ PayPal Connection Issue</h3>
+                    <p style="margin-bottom: 1rem;">We couldn't connect to PayPal's payment system.</p>
+                    <p style="margin-bottom: 2rem;">This might be due to network restrictions or temporary issues.</p>
+                    <button onclick="showDirectPaymentOptions()" class="btn btn-primary" style="width: 100%; max-width: 300px;">
+                        Use Alternative Payment Method
+                    </button>
+                    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="font-size: 0.875rem; color: var(--text-muted);">
+                            You can also try:
+                        </p>
+                        <ul style="text-align: left; max-width: 300px; margin: 1rem auto 0; font-size: 0.875rem;">
+                            <li>Using a different browser</li>
+                            <li>Disabling VPN if you're using one</li>
+                            <li>Trying from a different network</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            // Disable all plan selection buttons
+            document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.textContent = 'PayPal Unavailable - See Below';
+                btn.style.background = '#666';
+                btn.style.cursor = 'not-allowed';
+            });
+        }
+    </script>
     
     <script>
         let selectedPlan = null;
