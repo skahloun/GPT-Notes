@@ -76,7 +76,7 @@
     
     .auth-form .form-input {
       font-size: var(--text-base);
-      padding: var(--space-4) var(--space-5);
+      padding: var(--space-6) var(--space-5) var(--space-2);
       height: 56px;
     }
     
@@ -84,6 +84,17 @@
       font-size: var(--text-sm);
       font-weight: 500;
       color: var(--text-muted);
+    }
+    
+    /* Fix for floating labels */
+    .form-floating .form-input:focus + .form-label,
+    .form-floating .form-input:not(:placeholder-shown) + .form-label,
+    .form-floating .form-input:-webkit-autofill + .form-label {
+      top: var(--space-1);
+      font-size: var(--text-xs);
+      color: var(--primary-500);
+      background: var(--bg-card);
+      padding: 0 var(--space-1);
     }
 
     .demo-section {
@@ -423,6 +434,40 @@
     if (localStorage.getItem('authToken')) {
       window.location.href = '/';
     }
+    
+    // Handle floating labels on autofill
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputs = document.querySelectorAll('.form-floating .form-input');
+      
+      // Check for autofilled values on page load
+      setTimeout(() => {
+        inputs.forEach(input => {
+          if (input.value) {
+            input.classList.add('has-value');
+          }
+        });
+      }, 100);
+      
+      // Handle input changes
+      inputs.forEach(input => {
+        input.addEventListener('input', function() {
+          if (this.value) {
+            this.classList.add('has-value');
+          } else {
+            this.classList.remove('has-value');
+          }
+        });
+        
+        // Handle browser autofill
+        input.addEventListener('change', function() {
+          if (this.value) {
+            this.classList.add('has-value');
+          } else {
+            this.classList.remove('has-value');
+          }
+        });
+      });
+    });
   </script>
 </body>
 </html>
