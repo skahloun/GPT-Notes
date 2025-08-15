@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Integration Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--surface-glass);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+        }
+        .test-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+        }
+        .warning-info {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            color: var(--warning);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>PayPal Integration Test</h1>
+        
+        <div class="test-info">
+            <h3>Current Configuration</h3>
+            <p><strong>Client ID:</strong> AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1</p>
+            <p><strong>Environment:</strong> <span id="environment">Checking...</span></p>
+        </div>
+
+        <div class="warning-info">
+            <h3>⚠️ Important: Sandbox vs Live Accounts</h3>
+            <p>If you're using a <strong>sandbox (test) client ID</strong>, you must use <strong>sandbox test accounts</strong>, not your real PayPal account.</p>
+            <p>If you're using a <strong>live client ID</strong>, you must use your <strong>real PayPal account</strong>.</p>
+            <p>Mixing these will cause the login loop issue you're experiencing.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 1: Current Configuration</h2>
+            <p>This uses your current client ID. Click the button and observe if it asks you to create an account.</p>
+            <div id="paypal-button-container-1"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Explicit Sandbox Mode</h2>
+            <p>This forces sandbox mode. You'll need sandbox test accounts from developer.paypal.com</p>
+            <div id="paypal-button-container-2"></div>
+            <div style="margin-top: 1rem;">
+                <a href="https://developer.paypal.com/developer/accounts/" target="_blank" class="btn btn-secondary btn-sm">
+                    Get Sandbox Test Accounts
+                </a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: Direct PayPal Link</h2>
+            <p>This creates a direct PayPal payment link that bypasses the SDK entirely.</p>
+            <a href="https://www.paypal.com/paypalme/skahloun/10" target="_blank" class="btn btn-primary">
+                Pay $10 via PayPal.me
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h2>Diagnosis Results</h2>
+            <div id="diagnosis-results">
+                <p>Click one of the test buttons above to see diagnostic information...</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/pricing.html" class="btn btn-secondary">Back to Pricing</a>
+        </div>
+    </div>
+
+    <!-- Test 1: Current Config -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&debug=true"></script>
+    
+    <script>
+        // Check environment
+        function checkEnvironment() {
+            // This is a heuristic - sandbox client IDs often start with 'sb' or contain 'sandbox'
+            const clientId = 'AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1';
+            const isSandbox = clientId.includes('sb') || clientId.includes('sandbox');
+            
+            document.getElementById('environment').textContent = isSandbox ? 'Sandbox (Test)' : 'Live (Production)';
+            
+            if (!isSandbox) {
+                document.getElementById('environment').innerHTML += ' - <strong>This appears to be a LIVE client ID</strong>';
+            }
+        }
+        
+        checkEnvironment();
+        
+        // Test 1: Current configuration
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                addDiagnostic('Test 1: Creating order...');
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '1.00'
+                        },
+                        description: 'Test Payment'
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                addDiagnostic('Test 1: Payment approved!');
+                return actions.order.capture().then(function(details) {
+                    addDiagnostic('Test 1: Payment captured successfully');
+                    alert('Test 1 successful!');
+                });
+            },
+            onError: function(err) {
+                addDiagnostic('Test 1 Error: ' + err.message);
+                console.error('Test 1 Error:', err);
+            },
+            onClick: function() {
+                addDiagnostic('Test 1: Button clicked');
+            }
+        }).render('#paypal-button-container-1');
+        
+        // Test 2 will be loaded separately with sandbox URL
+        setTimeout(() => {
+            const script = document.createElement('script');
+            script.src = 'https://www.paypal.com/sdk/js?client-id=sb&currency=USD&debug=true';
+            script.onload = function() {
+                window.paypalSandbox = window.paypal;
+                window.paypalSandbox.Buttons({
+                    createOrder: function(data, actions) {
+                        addDiagnostic('Test 2 (Sandbox): Creating order...');
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: '1.00'
+                                },
+                                description: 'Sandbox Test Payment'
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        addDiagnostic('Test 2 (Sandbox): Payment approved!');
+                        return actions.order.capture().then(function(details) {
+                            addDiagnostic('Test 2 (Sandbox): Payment captured successfully');
+                            alert('Test 2 successful!');
+                        });
+                    },
+                    onError: function(err) {
+                        addDiagnostic('Test 2 (Sandbox) Error: ' + err.message);
+                        console.error('Test 2 Error:', err);
+                    }
+                }).render('#paypal-button-container-2');
+            };
+            document.body.appendChild(script);
+        }, 1000);
+        
+        function addDiagnostic(message) {
+            const resultsDiv = document.getElementById('diagnosis-results');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `<p><strong>[${timestamp}]</strong> ${message}</p>`;
+        }
+    </script>
+</body>
+</html>
