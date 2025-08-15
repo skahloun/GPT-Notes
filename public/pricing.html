@@ -55,17 +55,15 @@
 
         .popular-badge {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: -10px;
+            right: 20px;
             background: var(--gradient-primary);
             color: white;
-            padding: 0.5rem 2rem;
+            padding: 0.5rem 1.5rem;
             font-size: 0.875rem;
             font-weight: 600;
-            transform: translateX(30%) translateY(-30%) rotate(45deg);
-            transform-origin: center;
-            width: 200px;
-            text-align: center;
+            border-radius: var(--radius-full);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
         .plan-name {
@@ -185,6 +183,33 @@
             padding: 1rem;
             background: rgba(255, 255, 255, 0.02);
             border-radius: var(--radius-lg);
+            position: relative;
+        }
+        
+        .selected-plan-header {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cancel-selection {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fff;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--duration-normal) ease;
+        }
+        
+        .cancel-selection:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.7);
         }
 
         .loading {
@@ -217,7 +242,7 @@
             <p class="text-secondary" style="font-size: 0.875rem; margin-top: 0.5rem;">
                 <strong>Minimum purchase: $10</strong> (2 hours of credit)
             </p>
-            <button class="select-plan-btn" onclick="selectPlan('payg')">
+            <button class="select-plan-btn" onclick="selectPlan('payg', event)">
                 Purchase 2 Hours ($10)
             </button>
         </div>
@@ -243,7 +268,7 @@
                     <li>10 hours included</li>
                     <li>$3/hour after limit</li>
                 </ul>
-                <button class="select-plan-btn" onclick="selectPlan('student')">
+                <button class="select-plan-btn" onclick="selectPlan('student', event)">
                     Select Student Plan
                 </button>
             </div>
@@ -263,7 +288,7 @@
                     <li>Advanced AI summaries</li>
                     <li>$2.50/hour after limit</li>
                 </ul>
-                <button class="select-plan-btn" onclick="selectPlan('premium')">
+                <button class="select-plan-btn" onclick="selectPlan('premium', event)">
                     Select Premium Plan
                 </button>
             </div>
@@ -282,7 +307,7 @@
                     <li>API access</li>
                     <li>Priority support</li>
                 </ul>
-                <button class="select-plan-btn" onclick="selectPlan('unlimited')">
+                <button class="select-plan-btn" onclick="selectPlan('unlimited', event)">
                     Select Unlimited Plan
                 </button>
             </div>
@@ -405,7 +430,7 @@
             unlimited: { name: 'Unlimited Plan', price: '119.99', type: 'subscription' }
         };
 
-        function selectPlan(planId) {
+        function selectPlan(planId, event) {
             console.log('Plan selected:', planId);
             
             // Check if PayPal is loaded
@@ -416,31 +441,68 @@
             
             selectedPlan = planDetails[planId];
             
-            // Show loading on button
+            // Update button states
             const buttons = document.querySelectorAll('.select-plan-btn');
             buttons.forEach(btn => {
-                if (btn.textContent.includes('Select')) {
-                    btn.disabled = true;
-                }
+                btn.disabled = false;
+                btn.style.opacity = '0.6';
+                btn.innerHTML = btn.innerHTML.replace('Selected: ', '');
             });
             
-            // Show PayPal button container with loading message
+            // Mark the selected button
+            const clickedButton = event.target;
+            clickedButton.disabled = true;
+            clickedButton.style.opacity = '1';
+            clickedButton.innerHTML = 'Selected: ' + clickedButton.innerHTML;
+            
+            // Show PayPal button container with header
             const container = document.getElementById('paypal-button-container');
             container.style.display = 'block';
-            container.innerHTML = '<div style="text-align: center;"><div class="loading"></div><p>Loading PayPal...</p></div>';
+            container.innerHTML = `
+                <div class="selected-plan-header">
+                    <div>
+                        <strong>Selected Plan:</strong> ${selectedPlan.name} - $${selectedPlan.price}
+                    </div>
+                    <button class="cancel-selection" onclick="cancelPlanSelection()">
+                        ✕ Change Plan
+                    </button>
+                </div>
+                <div id="paypal-button-wrapper">
+                    <div style="text-align: center;"><div class="loading"></div><p>Loading PayPal...</p></div>
+                </div>
+            `;
             
             // Small delay to ensure container is visible
             setTimeout(() => {
-                container.innerHTML = '';
+                const wrapper = document.getElementById('paypal-button-wrapper');
+                wrapper.innerHTML = '';
                 if (selectedPlan.type === 'subscription') {
-                    createSubscription();
+                    createSubscription(wrapper);
                 } else {
-                    createPayAsYouGo();
+                    createPayAsYouGo(wrapper);
                 }
             }, 100);
         }
+        
+        function cancelPlanSelection() {
+            // Reset all buttons
+            const buttons = document.querySelectorAll('.select-plan-btn');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerHTML = btn.innerHTML.replace('Selected: ', '');
+            });
+            
+            // Hide PayPal container
+            const container = document.getElementById('paypal-button-container');
+            container.style.display = 'none';
+            container.innerHTML = '';
+            
+            // Clear selected plan
+            selectedPlan = null;
+        }
 
-        function createSubscription() {
+        function createSubscription(wrapper) {
             // For now, we'll use one-time payments for subscription plans too
             // Users will need to manually renew each month
             paypal.Buttons({
@@ -499,13 +561,13 @@
                 onCancel: function(data) {
                     console.log('Payment cancelled');
                 }
-            }).render('#paypal-button-container').catch(function(err) {
+            }).render(wrapper || '#paypal-button-container').catch(function(err) {
                 console.error('PayPal button render error:', err);
-                document.getElementById('paypal-button-container').innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
+                wrapper.innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
             });
         }
 
-        function createPayAsYouGo() {
+        function createPayAsYouGo(wrapper) {
             console.log('Creating PayPal button for pay-as-you-go...');
             
             // Check if PayPal SDK is loaded
@@ -564,9 +626,9 @@
                     console.error('PayPal error:', err);
                     alert('Payment failed. Please try again.');
                 }
-            }).render('#paypal-button-container').catch(function(err) {
+            }).render(wrapper || '#paypal-button-container').catch(function(err) {
                 console.error('PayPal button render error:', err);
-                document.getElementById('paypal-button-container').innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
+                wrapper.innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
             });
         }
 
