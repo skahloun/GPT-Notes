@@ -1,18 +1,45 @@
+// Time limit management
+let recordingStartTime = null;
+let timeLeftInterval = null;
+let hasActivePlan = false;
+let userTimeLimit = null; // in milliseconds
+
 // Check authentication on page load
 const token = localStorage.getItem('authToken');
 if (!token || token === 'demo-token') {
-  // Allow demo mode to continue
-  if (token !== 'demo-token') {
+  // Demo mode - 5 minute limit
+  if (token === 'demo-token') {
+    // Check demo cookie
+    const demoCookie = getCookie('demoUsed');
+    if (demoCookie) {
+      // Demo already used
+      alert('Demo time limit reached. Please sign up to continue using the service.');
+      window.location.href = '/auth.html';
+    } else {
+      userTimeLimit = 5 * 60 * 1000; // 5 minutes
+      displayTimeLimit();
+    }
+  } else {
     window.location.href = '/auth.html';
   }
 } else {
-  // Verify token with server
+  // Verify token with server and check plan
   fetch('/api/verify-token', {
     headers: { 'Authorization': 'Bearer ' + token }
   }).then(response => {
     if (!response.ok) {
       localStorage.removeItem('authToken');
       window.location.href = '/auth.html';
+    } else {
+      return response.json();
+    }
+  }).then(data => {
+    if (data) {
+      hasActivePlan = data.hasActivePlan || false;
+      if (!hasActivePlan) {
+        userTimeLimit = 2 * 60 * 1000; // 2 minutes for non-paying users
+        displayTimeLimit();
+      }
     }
   }).catch(() => {
     localStorage.removeItem('authToken');
@@ -20,10 +47,106 @@ if (!token || token === 'demo-token') {
   });
 }
 
+// Cookie functions
+function setCookie(name, value, minutes) {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + (minutes * 60 * 1000));
+  document.cookie = name + '=' + value + ';expires=' + expires.toUTCString() + ';path=/';
+}
+
+function getCookie(name) {
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+}
+
+function displayTimeLimit() {
+  if (userTimeLimit) {
+    const minutes = Math.floor(userTimeLimit / 60000);
+    const message = token === 'demo-token' 
+      ? `Demo mode: ${minutes} minutes of free recording`
+      : `Free tier: ${minutes} minutes of recording. Upgrade for unlimited access.`;
+    
+    // Create time limit banner
+    const banner = document.createElement('div');
+    banner.className = 'time-limit-banner';
+    banner.innerHTML = `
+      <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); 
+                  padding: 12px 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+        <span style="color: var(--warning); font-weight: 500;">${message}</span>
+      </div>
+    `;
+    document.querySelector('.main-container').insertBefore(banner, document.querySelector('.google-integration'));
+  }
+}
+
 // Logout function
 function logout() {
   localStorage.removeItem('authToken');
   window.location.href = '/auth.html';
+}
+
+// Time tracking functions
+function startTimeTracking() {
+  if (!userTimeLimit || !recordingStartTime) return;
+  
+  // Clear any existing interval
+  if (timeLeftInterval) {
+    clearInterval(timeLeftInterval);
+  }
+  
+  timeLeftInterval = setInterval(() => {
+    const timeUsed = Date.now() - recordingStartTime;
+    const timeLeft = userTimeLimit - timeUsed;
+    
+    if (timeLeft <= 0) {
+      handleTimeLimitReached();
+    } else {
+      // Update status with time remaining
+      const minutes = Math.floor(timeLeft / 60000);
+      const seconds = Math.floor((timeLeft % 60000) / 1000);
+      const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Add time remaining to status
+      const currentStatus = statusEl.textContent;
+      if (!currentStatus.includes('Time left:')) {
+        statusEl.innerHTML = currentStatus + ` <span style="color: var(--warning); font-weight: 500;">(Time left: ${timeString})</span>`;
+      } else {
+        statusEl.innerHTML = currentStatus.replace(/\(Time left: .*?\)/, `(Time left: ${timeString})`);
+      }
+    }
+  }, 1000);
+}
+
+function stopTimeTracking() {
+  if (timeLeftInterval) {
+    clearInterval(timeLeftInterval);
+    timeLeftInterval = null;
+  }
+}
+
+function handleTimeLimitReached() {
+  stopTimeTracking();
+  stopRecording();
+  
+  if (token === 'demo-token') {
+    // Set cookie to prevent further demo use
+    setCookie('demoUsed', 'true', 60 * 24); // 24 hours
+    alert('Demo time limit reached. Please sign up to continue using the service.');
+    setTimeout(() => {
+      window.location.href = '/auth.html';
+    }, 3000);
+  } else {
+    alert('Free tier time limit reached. Please upgrade to a paid plan to continue recording.');
+    setTimeout(() => {
+      window.location.href = '/pricing.html';
+    }, 3000);
+  }
 }
 
 // Multi-tenant transcription app
@@ -77,7 +200,17 @@ async function startRecording() {
       statusEl.textContent = 'Recording resumed...';
       setupAudioProcessing(); // Reconnect audio processing
       updateButtonStates();
+      startTimeTracking(); // Resume time tracking
       return;
+    }
+    
+    // Check if time limit is reached
+    if (userTimeLimit && recordingStartTime) {
+      const timeUsed = Date.now() - recordingStartTime;
+      if (timeUsed >= userTimeLimit) {
+        handleTimeLimitReached();
+        return;
+      }
     }
 
     // Clear previous transcript and notes
@@ -192,6 +325,14 @@ async function startRecording() {
     isRecording = true;
     isPaused = false;
     updateButtonStates();
+    
+    // Start time tracking if there's a limit
+    if (userTimeLimit) {
+      if (!recordingStartTime) {
+        recordingStartTime = Date.now();
+      }
+      startTimeTracking();
+    }
 
   } catch (error) {
     console.error('Failed to start recording:', error);
@@ -207,6 +348,9 @@ function pauseRecording() {
     statusEl.textContent = 'Recording paused. Click Record to resume.';
     updateButtonStates();
     
+    // Stop time tracking during pause
+    stopTimeTracking();
+    
     // Pause audio processing but keep connection
     if (processor) {
       processor.disconnect();
@@ -216,6 +360,9 @@ function pauseRecording() {
 
 // Stop recording
 function stopRecording() {
+  // Stop time tracking
+  stopTimeTracking();
+  
   if (ws && ws.readyState === WebSocket.OPEN) {
     console.log('Sending stop message to server');
     ws.send(JSON.stringify({ type: 'stop' }));

@@ -89,12 +89,14 @@
     /* Fix for floating labels */
     .form-floating .form-input:focus + .form-label,
     .form-floating .form-input:not(:placeholder-shown) + .form-label,
-    .form-floating .form-input:-webkit-autofill + .form-label {
+    .form-floating .form-input:-webkit-autofill + .form-label,
+    .form-floating .form-input.has-value + .form-label {
       top: var(--space-1);
       font-size: var(--text-xs);
-      color: var(--primary-500);
+      color: var(--text-muted);
       background: var(--bg-card);
       padding: 0 var(--space-1);
+      opacity: 0.7;
     }
 
     .demo-section {

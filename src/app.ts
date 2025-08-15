@@ -212,8 +212,32 @@ app.post("/api/save-google-tokens", authMiddleware, async (req:any, res) => {
 });
 
 // --- Token verification ---
-app.get("/api/verify-token", authMiddleware, (req: any, res) => {
-  res.json({ valid: true, user: req.user });
+app.get("/api/verify-token", authMiddleware, async (req: any, res) => {
+  try {
+    // Get user plan information
+    const user = await db.get(`
+      SELECT tier, subscription_plan, subscription_status, is_test_account 
+      FROM users 
+      WHERE id = ?
+    `, [req.user.uid]);
+    
+    // Determine if user has active plan
+    const hasActivePlan = user && (
+      user.is_test_account === 1 || 
+      user.tier === 'premium' || 
+      (user.subscription_plan && user.subscription_status === 'active') ||
+      user.subscription_plan === 'payg'
+    );
+    
+    res.json({ 
+      valid: true, 
+      user: req.user,
+      hasActivePlan: hasActivePlan
+    });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.json({ valid: true, user: req.user, hasActivePlan: false });
+  }
 });
 
 // --- User info ---
