@@ -519,17 +519,16 @@ wss.on("connection", (ws, req) => {
           if (userId !== "demo-user") {
             const user = await db.get("SELECT * FROM users WHERE id=?", [userId]);
             const hasValidPlan = user && (
+              user.is_test_account === 1 ||
               (user.subscription_status === 'active' && user.hours_used_this_month < user.hours_limit) ||
-              (user.tier === 'payg' && user.credits_balance > 0)
+              (user.tier === 'payg' && user.credits_balance > 0) ||
+              user.subscription_plan === 'payg'
             );
             
+            // Allow limited recording for users without active plans (handled by client-side time limits)
+            // Just log the status but don't block the connection
             if (!hasValidPlan) {
-              ws.send(JSON.stringify({ 
-                type: "error", 
-                message: "No active subscription or credits. Please purchase a plan to continue." 
-              }));
-              ws.close();
-              return;
+              console.log(`User ${userId} connecting without active plan - client will enforce time limits`);
             }
           }
           
