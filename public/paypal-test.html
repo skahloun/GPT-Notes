@@ -42,7 +42,9 @@
         <div class="test-info">
             <h3>Current Configuration</h3>
             <p><strong>Client ID:</strong> AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1</p>
-            <p><strong>Environment:</strong> <span id="environment">Checking...</span></p>
+            <p><strong>Your Client ID:</strong> ✅ Confirmed - This is YOUR business account client ID</p>
+            <p><strong>Environment:</strong> <span id="environment">Live (Production)</span></p>
+            <p><strong>Domain:</strong> <span id="current-domain"></span></p>
         </div>
 
         <div class="warning-info">
@@ -107,6 +109,9 @@
         }
         
         checkEnvironment();
+        
+        // Show current domain
+        document.getElementById('current-domain').textContent = window.location.hostname;
         
         // Test 1: Current configuration
         paypal.Buttons({

@@ -314,7 +314,7 @@
     </div>
 
     <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&commit=false&debug=true"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture&disable-funding=credit,card&debug=true"></script>
     
     <script>
         let selectedPlan = null;
@@ -390,7 +390,6 @@
                     shape: 'rect',
                     label: 'paypal'
                 },
-                fundingSource: paypal.FUNDING.PAYPAL,
                 createOrder: function(data, actions) {
                     return actions.order.create({
                         purchase_units: [{
@@ -401,8 +400,18 @@
                         }],
                         application_context: {
                             shipping_preference: 'NO_SHIPPING',
-                            user_action: 'PAY_NOW'
+                            user_action: 'PAY_NOW',
+                            landing_page: 'LOGIN',
+                            return_url: window.location.origin + '/index.html',
+                            cancel_url: window.location.origin + '/pricing.html'
                         }
+                    });
+                },
+                onClick: function(data, actions) {
+                    console.log('PayPal button clicked - clearing any stale sessions');
+                    // Clear any PayPal cookies that might be causing issues
+                    document.cookie.split(";").forEach(function(c) { 
+                        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
                     });
                 },
                 onApprove: function(data, actions) {

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proper PayPal Implementation</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="pricing-container">
+        <h1>Proper PayPal Implementation Example</h1>
+        
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+            <h3>⚠️ Important Setup Steps</h3>
+            <ol>
+                <li>Replace CLIENT_ID_HERE with your actual PayPal client ID</li>
+                <li>Make sure you're using the correct environment (sandbox vs live)</li>
+                <li>Test with sandbox first before going live</li>
+            </ol>
+        </div>
+
+        <div class="pricing-card" style="max-width: 400px; margin: 0 auto;">
+            <h2>Pay As You Go - $5/hour</h2>
+            <p>Purchase credits for transcription time</p>
+            
+            <!-- PayPal button container -->
+            <div id="paypal-button-container"></div>
+            
+            <!-- Alternative payment message -->
+            <div id="alt-payment" style="display: none; margin-top: 1rem; text-align: center;">
+                <p>Or pay directly via PayPal to: <strong>your-email@example.com</strong></p>
+            </div>
+        </div>
+
+        <!-- Status messages -->
+        <div id="status-message" style="margin-top: 2rem; text-align: center;"></div>
+    </div>
+
+    <!-- 
+    IMPORTANT: Replace CLIENT_ID_HERE with your actual client ID from:
+    https://developer.paypal.com/dashboard/applications/live
+    -->
+    <script src="https://www.paypal.com/sdk/js?client-id=CLIENT_ID_HERE&currency=USD&intent=capture&commit=true"></script>
+    
+    <script>
+        // Configuration
+        const CONFIG = {
+            // Set to true when using sandbox for testing
+            isSandbox: false,
+            // Your PayPal email for alternative payments
+            paypalEmail: 'your-email@example.com',
+            // Initial credit amount
+            creditAmount: '10.00'
+        };
+
+        // Helper function to show status
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status-message');
+            statusEl.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+        }
+
+        // Initialize PayPal Buttons
+        paypal.Buttons({
+            // Style configuration
+            style: {
+                layout: 'vertical',
+                color: 'blue',
+                shape: 'rect',
+                label: 'paypal'
+            },
+
+            // Funding sources configuration
+            funding: {
+                allowed: [paypal.FUNDING.PAYPAL],
+                disallowed: []
+            },
+
+            // Create order
+            createOrder: function(data, actions) {
+                showStatus('Creating order...', 'info');
+                
+                return actions.order.create({
+                    intent: 'CAPTURE',
+                    purchase_units: [{
+                        amount: {
+                            currency_code: 'USD',
+                            value: CONFIG.creditAmount
+                        },
+                        description: 'Class Notes PWA - Transcription Credits'
+                    }],
+                    application_context: {
+                        brand_name: 'Class Notes PWA',
+                        landing_page: 'LOGIN',
+                        shipping_preference: 'NO_SHIPPING',
+                        user_action: 'PAY_NOW',
+                        return_url: window.location.origin + '/pricing.html?success=true',
+                        cancel_url: window.location.origin + '/pricing.html?canceled=true'
+                    }
+                });
+            },
+
+            // Handle approval
+            onApprove: function(data, actions) {
+                showStatus('Processing payment...', 'info');
+                
+                return actions.order.capture().then(function(orderData) {
+                    console.log('Capture result:', orderData);
+                    
+                    // Get transaction details
+                    const transaction = orderData.purchase_units[0].payments.captures[0];
+                    
+                    showStatus(`Payment successful! Transaction ID: ${transaction.id}`, 'success');
+                    
+                    // Send to your server
+                    return fetch('/api/add-credit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+                        },
+                        body: JSON.stringify({
+                            orderID: data.orderID,
+                            transactionID: transaction.id,
+                            amount: transaction.amount.value,
+                            payerEmail: orderData.payer.email_address
+                        })
+                    }).then(function(response) {
+                        if (response.ok) {
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 2000);
+                        } else {
+                            showStatus('Payment recorded but account activation failed. Please contact support.', 'warning');
+                        }
+                    });
+                });
+            },
+
+            // Handle cancellation
+            onCancel: function(data) {
+                showStatus('Payment cancelled', 'warning');
+            },
+
+            // Handle errors
+            onError: function(err) {
+                console.error('PayPal error:', err);
+                
+                // Specific error handling
+                if (err.message && err.message.includes('popup_blocked')) {
+                    showStatus('Please allow popups for PayPal checkout', 'error');
+                } else if (err.message && err.message.includes('CLIENT_AUTH')) {
+                    showStatus('Invalid PayPal client configuration. Please contact support.', 'error');
+                    document.getElementById('alt-payment').style.display = 'block';
+                } else {
+                    showStatus('Payment error occurred. Please try again or use alternative payment method.', 'error');
+                    document.getElementById('alt-payment').style.display = 'block';
+                }
+            },
+
+            // Handle click
+            onClick: function(data, actions) {
+                console.log('PayPal button clicked');
+                
+                // Validate before proceeding
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    showStatus('Please log in first', 'error');
+                    return actions.reject();
+                }
+            }
+
+        }).render('#paypal-button-container').catch(function(err) {
+            console.error('PayPal Buttons failed to render:', err);
+            showStatus('PayPal checkout unavailable. Please use alternative payment method.', 'error');
+            document.getElementById('alt-payment').style.display = 'block';
+        });
+
+        // Check URL parameters for redirect handling
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            showStatus('Payment completed successfully!', 'success');
+        } else if (urlParams.get('canceled') === 'true') {
+            showStatus('Payment was cancelled', 'warning');
+        }
+
+        // Add configuration display for debugging
+        if (CONFIG.isSandbox) {
+            document.body.insertAdjacentHTML('afterbegin', 
+                '<div style="background: #ff0; color: #000; padding: 10px; text-align: center;">⚠️ SANDBOX MODE - Using test environment</div>'
+            );
+        }
+    </script>
+</body>
+</html>
