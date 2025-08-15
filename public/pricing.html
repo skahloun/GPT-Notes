@@ -181,6 +181,10 @@
         #paypal-button-container {
             margin-top: 2rem;
             display: none;
+            min-height: 150px;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: var(--radius-lg);
         }
 
         .loading {
@@ -326,6 +330,14 @@
         };
 
         function selectPlan(planId) {
+            console.log('Plan selected:', planId);
+            
+            // Check if PayPal is loaded
+            if (typeof paypal === 'undefined') {
+                alert('PayPal is still loading. Please wait a moment and try again.');
+                return;
+            }
+            
             selectedPlan = planDetails[planId];
             
             // Show loading on button
@@ -336,15 +348,20 @@
                 }
             });
             
-            // Show PayPal button
-            document.getElementById('paypal-button-container').style.display = 'block';
-            document.getElementById('paypal-button-container').innerHTML = '';
+            // Show PayPal button container with loading message
+            const container = document.getElementById('paypal-button-container');
+            container.style.display = 'block';
+            container.innerHTML = '<div style="text-align: center;"><div class="loading"></div><p>Loading PayPal...</p></div>';
             
-            if (selectedPlan.type === 'subscription') {
-                createSubscription();
-            } else {
-                createPayAsYouGo();
-            }
+            // Small delay to ensure container is visible
+            setTimeout(() => {
+                container.innerHTML = '';
+                if (selectedPlan.type === 'subscription') {
+                    createSubscription();
+                } else {
+                    createPayAsYouGo();
+                }
+            }, 100);
         }
 
         function createSubscription() {
@@ -378,10 +395,22 @@
                     console.error('PayPal error:', err);
                     alert('Payment failed. Please try again.');
                 }
-            }).render('#paypal-button-container');
+            }).render('#paypal-button-container').catch(function(err) {
+                console.error('PayPal button render error:', err);
+                document.getElementById('paypal-button-container').innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
+            });
         }
 
         function createPayAsYouGo() {
+            console.log('Creating PayPal button for pay-as-you-go...');
+            
+            // Check if PayPal SDK is loaded
+            if (typeof paypal === 'undefined') {
+                console.error('PayPal SDK not loaded!');
+                alert('PayPal is not loaded. Please refresh the page and try again.');
+                return;
+            }
+            
             // For pay-as-you-go, we'll create an order for initial credits
             paypal.Buttons({
                 style: {
@@ -431,7 +460,10 @@
                     console.error('PayPal error:', err);
                     alert('Payment failed. Please try again.');
                 }
-            }).render('#paypal-button-container');
+            }).render('#paypal-button-container').catch(function(err) {
+                console.error('PayPal button render error:', err);
+                document.getElementById('paypal-button-container').innerHTML = '<p style="color: red;">Error loading PayPal. Please refresh and try again.</p>';
+            });
         }
 
         async function checkTestAccount() {
@@ -502,6 +534,18 @@
             alert('PayPal session cleared. Please refresh the page and try again.');
             window.location.reload();
         }
+        
+        // Check if PayPal SDK loaded on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (typeof paypal !== 'undefined') {
+                    console.log('✅ PayPal SDK loaded successfully');
+                } else {
+                    console.error('❌ PayPal SDK failed to load');
+                    alert('PayPal failed to load. This might be due to ad blockers or network issues. Please disable ad blockers and refresh the page.');
+                }
+            }, 1000);
+        });
     </script>
 </body>
 </html>
