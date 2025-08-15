@@ -293,7 +293,7 @@
         
         <div style="text-align: center; margin-top: 1rem;">
             <p class="text-secondary" style="font-size: 0.875rem;">
-                Having trouble logging in? Try clearing your browser cookies for PayPal or use a different browser.
+                Having trouble? Try these alternatives:
             </p>
             <div style="margin-top: 1rem;">
                 <a href="https://www.paypal.com/signin" target="_blank" class="btn btn-secondary btn-sm" style="margin-right: 0.5rem;">
@@ -304,15 +304,44 @@
                 </button>
             </div>
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-                <p style="font-weight: 600; margin-bottom: 0.5rem;">Alternative Payment Method:</p>
-                <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">If PayPal login continues to fail, you can send payment directly to:</p>
-                <code style="display: block; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 0.5rem;">
-                    skahloun@gmail.com
-                </code>
-                <p style="font-size: 0.75rem; color: var(--text-muted);">Include your email address in the payment note, and we'll activate your account manually.</p>
-                <div style="margin-top: 0.5rem;">
-                    <a href="/paypal-test.html" class="btn btn-warning btn-sm">Run PayPal Diagnostic Test</a>
+                <p style="font-weight: 600; margin-bottom: 0.5rem;">🔧 Quick Fix for Ad Blocker Issues:</p>
+                <div style="margin: 1rem 0;">
+                    <button onclick="showDirectPaymentOptions()" class="btn btn-primary" style="width: 100%; max-width: 300px;">
+                        Use Direct PayPal Payment
+                    </button>
                 </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;">
+                    Works even with ad blockers enabled!
+                </p>
+            </div>
+        </div>
+        
+        <!-- Direct Payment Modal -->
+        <div id="directPaymentModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; padding: 2rem;">
+            <div style="max-width: 500px; margin: 50px auto; background: var(--surface-primary); border-radius: var(--radius-lg); padding: 2rem;">
+                <h2 style="margin-bottom: 1.5rem;">Direct PayPal Payment</h2>
+                <p style="margin-bottom: 1.5rem;">Choose your payment amount:</p>
+                <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
+                    <a href="https://www.paypal.me/skahloun/10" target="_blank" class="btn btn-primary" style="text-align: center;">
+                        Pay $10 (2 hours credit)
+                    </a>
+                    <a href="https://www.paypal.me/skahloun/30" target="_blank" class="btn btn-primary" style="text-align: center;">
+                        Pay $30 (Student Plan - Monthly)
+                    </a>
+                    <a href="https://www.paypal.me/skahloun/70" target="_blank" class="btn btn-primary" style="text-align: center;">
+                        Pay $70 (Premium Plan - Monthly)
+                    </a>
+                    <a href="https://www.paypal.me/skahloun/120" target="_blank" class="btn btn-primary" style="text-align: center;">
+                        Pay $120 (Unlimited Plan - Monthly)
+                    </a>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                    <p style="font-weight: bold; margin-bottom: 0.5rem;">📧 Important:</p>
+                    <p style="font-size: 0.875rem;">Include your Class Notes account email in the payment note!</p>
+                </div>
+                <button onclick="closeDirectPaymentModal()" class="btn btn-secondary" style="width: 100%;">
+                    Close
+                </button>
             </div>
         </div>
     </div>
@@ -535,6 +564,16 @@
             window.location.reload();
         }
         
+        // Function to show direct payment options
+        function showDirectPaymentOptions() {
+            document.getElementById('directPaymentModal').style.display = 'block';
+        }
+        
+        // Function to close direct payment modal
+        function closeDirectPaymentModal() {
+            document.getElementById('directPaymentModal').style.display = 'none';
+        }
+        
         // Check if PayPal SDK loaded on page load
         window.addEventListener('load', function() {
             setTimeout(() => {
@@ -542,7 +581,41 @@
                     console.log('✅ PayPal SDK loaded successfully');
                 } else {
                     console.error('❌ PayPal SDK failed to load');
-                    alert('PayPal failed to load. This might be due to ad blockers or network issues. Please disable ad blockers and refresh the page.');
+                    // Show prominent error message
+                    const container = document.getElementById('paypal-button-container');
+                    container.style.display = 'block';
+                    container.innerHTML = `
+                        <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid rgba(239, 68, 68, 0.5); padding: 2rem; border-radius: 8px; text-align: center;">
+                            <h3 style="color: #ef4444; margin-bottom: 1rem;">⚠️ PayPal Could Not Load</h3>
+                            <p style="margin-bottom: 1rem;">PayPal is being blocked. This is usually caused by:</p>
+                            <ul style="text-align: left; max-width: 400px; margin: 0 auto 1.5rem;">
+                                <li>Ad blockers (uBlock Origin, AdBlock Plus, etc.)</li>
+                                <li>Privacy extensions (Privacy Badger, etc.)</li>
+                                <li>Brave Browser shields</li>
+                                <li>Firefox Enhanced Tracking Protection</li>
+                            </ul>
+                            <p style="font-weight: bold; margin-bottom: 1rem;">To fix this:</p>
+                            <ol style="text-align: left; max-width: 400px; margin: 0 auto 1.5rem;">
+                                <li>Disable ad blockers for this site</li>
+                                <li>Refresh the page</li>
+                                <li>Or use the alternative payment method below</li>
+                            </ol>
+                            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.2);">
+                                <p style="font-weight: bold;">Alternative Payment Method:</p>
+                                <p>Send payment directly via PayPal to:</p>
+                                <code style="display: block; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px; margin: 1rem 0;">skahloun@gmail.com</code>
+                                <p style="font-size: 0.875rem;">Include your email in the payment note for account activation.</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Disable all plan selection buttons
+                    document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                        btn.disabled = true;
+                        btn.textContent = 'PayPal Blocked - See Below';
+                        btn.style.background = '#666';
+                        btn.style.cursor = 'not-allowed';
+                    });
                 }
             }, 1000);
         });
