@@ -164,6 +164,7 @@ export class DatabaseAdapter {
         amount DECIMAL(10,2),
         currency TEXT DEFAULT 'USD',
         paypal_order_id TEXT,
+        external_order_id TEXT,
         paypal_subscription_id TEXT,
         status TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -259,6 +260,7 @@ export class DatabaseAdapter {
         amount REAL,
         currency TEXT DEFAULT 'USD',
         paypal_order_id TEXT,
+        external_order_id TEXT,
         paypal_subscription_id TEXT,
         status TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -270,6 +272,13 @@ export class DatabaseAdapter {
   // Run database migrations
   private async runMigrations() {
     try {
+      // Import and run migrations
+      const { addExternalOrderIdColumn } = await import('../migrations/add-external-order-id');
+      await addExternalOrderIdColumn(
+        this.config.type === 'postgresql' ? this.pgPool : this.sqliteDb,
+        this.config.type === 'postgresql'
+      );
+      
       // Check if migration is needed by trying to query a new column
       const testQuery = this.config.type === 'postgresql' 
         ? "SELECT subscription_plan FROM users LIMIT 1"

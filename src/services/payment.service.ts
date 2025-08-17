@@ -48,7 +48,7 @@ export class PaymentService {
     
     // Record payment
     await db.run(`
-      INSERT INTO payments (id, userId, type, amount, external_order_id, status)
+      INSERT INTO payments (id, userId, type, amount, paypal_order_id, status)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [paymentId, userId, 'credit', amount, orderId, 'completed']);
 
