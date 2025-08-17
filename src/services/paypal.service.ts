@@ -148,16 +148,31 @@ export class PayPalService {
    */
   async captureOrder(orderId: string) {
     try {
+      console.log('Capturing PayPal order:', orderId);
+      
       const capture = await this.ordersController.captureOrder({
         id: orderId,
         prefer: 'return=representation'
       });
 
+      console.log('PayPal capture response:', JSON.stringify(capture.result, null, 2));
+
+      // Extract amount from the capture response
+      const purchaseUnit = capture.result.purchaseUnits?.[0];
+      const captureDetails = purchaseUnit?.payments?.captures?.[0];
+      const amount = captureDetails?.amount?.value || purchaseUnit?.amount?.value;
+      
+      console.log('Extracted payment details:', {
+        status: capture.result.status,
+        amount,
+        userId: purchaseUnit?.customId
+      });
+
       return {
         id: capture.result.id,
         status: capture.result.status,
-        amount: capture.result.purchaseUnits?.[0]?.payments?.captures?.[0]?.amount?.value,
-        userId: capture.result.purchaseUnits?.[0]?.customId
+        amount,
+        userId: purchaseUnit?.customId
       };
     } catch (error) {
       console.error('Error capturing PayPal order:', error);

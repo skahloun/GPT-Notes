@@ -44,24 +44,39 @@ export class PaymentService {
   }
 
   async addCredits(userId: string, amount: number, orderId: string, db: any) {
+    console.log('Adding credits:', { userId, amount, orderId });
+    
     const paymentId = uuidv4();
     
-    // Record payment
-    await db.run(`
-      INSERT INTO payments (id, userId, type, amount, paypal_order_id, status)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [paymentId, userId, 'credit', amount, orderId, 'completed']);
+    try {
+      // Record payment
+      await db.run(`
+        INSERT INTO payments (id, userId, type, amount, paypal_order_id, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [paymentId, userId, 'credit', amount, orderId, 'completed']);
+      
+      console.log('Payment recorded:', paymentId);
 
-    // Add credits to user (amount / hourly rate)
-    const hours = amount / 2.00; // $2 per hour
-    await db.run(`
-      UPDATE users SET 
-        credits_balance = credits_balance + ?,
-        tier = 'payg'
-      WHERE id = ?
-    `, [hours, userId]);
+      // Add credits to user (amount / hourly rate)
+      const hours = amount / 2.00; // $2 per hour
+      await db.run(`
+        UPDATE users SET 
+          credits_balance = credits_balance + ?,
+          tier = 'payg'
+        WHERE id = ?
+      `, [hours, userId]);
+      
+      console.log('Credits added to user:', { userId, hours });
 
-    return { success: true, creditsAdded: hours };
+      // Verify the update
+      const updatedUser = await db.get('SELECT credits_balance FROM users WHERE id = ?', [userId]);
+      console.log('User credits after update:', updatedUser);
+
+      return { success: true, creditsAdded: hours };
+    } catch (error) {
+      console.error('Error adding credits:', error);
+      throw error;
+    }
   }
 
   async checkUsage(userId: string, durationMinutes: number, db: any): Promise<boolean> {
