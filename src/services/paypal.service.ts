@@ -76,7 +76,13 @@ export class PayPalService {
    */
   async createOrder(amount: string, userId: string) {
     try {
-      console.log('Creating PayPal order:', { amount, userId });
+      // Ensure amount is properly formatted with 2 decimal places
+      const formattedAmount = parseFloat(amount).toFixed(2);
+      console.log('Creating PayPal order:', { 
+        originalAmount: amount, 
+        formattedAmount,
+        userId 
+      });
       
       const orderRequest = {
         prefer: 'return=representation',
@@ -85,7 +91,7 @@ export class PayPalService {
           purchaseUnits: [{
             amount: {
               currencyCode: 'USD',
-              value: amount
+              value: formattedAmount
             },
             description: `Class Notes - ${parseFloat(amount) / 2} hours of transcription credits`,
             customId: userId,
@@ -120,6 +126,9 @@ export class PayPalService {
         message: error.message,
         response: error.response,
         statusCode: error.statusCode,
+        body: error.body,
+        details: error.details,
+        rawError: error,
         stack: error.stack
       });
       

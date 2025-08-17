@@ -352,6 +352,7 @@
     <script>
         let selectedPlan = null;
         let paypalButtonsRendered = false;
+        let isRenderingButtons = false;
 
         // Get auth token from localStorage
         function getAuthToken() {
@@ -427,20 +428,36 @@
         }
 
         function renderPayPalButtons(plan) {
+            // Prevent multiple simultaneous renders
+            if (isRenderingButtons) {
+                console.log('Already rendering buttons, skipping...');
+                return;
+            }
+            
+            isRenderingButtons = true;
             const container = document.getElementById('paypal-button-container');
-            container.innerHTML = ''; // Clear existing buttons
+            
+            // Clear any existing buttons completely
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+            
             container.style.display = 'block';
             
-            if (plan === 'payg') {
-                renderPayAsYouGoButtons();
-            } else {
-                renderSubscriptionButtons(plan);
-            }
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                if (plan === 'payg') {
+                    renderPayAsYouGoButtons();
+                } else {
+                    renderSubscriptionButtons(plan);
+                }
+            }, 100);
         }
 
         function renderPayAsYouGoButtons() {
             if (typeof paypal === 'undefined') {
                 showPayPalError();
+                isRenderingButtons = false;
                 return;
             }
             
@@ -479,8 +496,7 @@
                     } catch (error) {
                         console.error('Create order error:', error);
                         showError('Failed to create order: ' + error.message);
-                        // Re-render the buttons after error
-                        setTimeout(() => renderPayAsYouGoButtons(), 2000);
+                        // Don't re-render buttons - let user retry with existing buttons
                         throw error;
                     }
                 },
@@ -527,18 +543,26 @@
                 onCancel: function(data) {
                     showError('Payment cancelled.');
                 }
-            }).render('#paypal-button-container');
+            }).render('#paypal-button-container').then(() => {
+                isRenderingButtons = false;
+                console.log('PayPal buttons rendered successfully');
+            }).catch((err) => {
+                isRenderingButtons = false;
+                console.error('Failed to render PayPal buttons:', err);
+            });
         }
 
         async function renderSubscriptionButtons(plan) {
             if (typeof paypal === 'undefined') {
                 showPayPalError();
+                isRenderingButtons = false;
                 return;
             }
             
             const plans = await fetchPlans();
             if (!plans || !plans[plan]) {
                 showError('Failed to load subscription plans. Please refresh and try again.');
+                isRenderingButtons = false;
                 return;
             }
 
@@ -619,7 +643,13 @@
                 onCancel: function(data) {
                     showError('Subscription cancelled.');
                 }
-            }).render('#paypal-button-container');
+            }).render('#paypal-button-container').then(() => {
+                isRenderingButtons = false;
+                console.log('PayPal buttons rendered successfully');
+            }).catch((err) => {
+                isRenderingButtons = false;
+                console.error('Failed to render PayPal buttons:', err);
+            });
         }
 
         function cancelPayment() {

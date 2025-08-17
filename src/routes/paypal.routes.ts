@@ -12,6 +12,19 @@ interface AuthRequest extends Request {
 const router = Router();
 const webhookService = new PayPalWebhookService(process.env.PAYPAL_WEBHOOK_ID || '');
 
+// Debug endpoint to check configuration (remove in production)
+router.get('/debug-config', (req: Request, res: Response) => {
+  const config = {
+    hasClientId: !!process.env.PAYPAL_CLIENT_ID,
+    clientIdPrefix: process.env.PAYPAL_CLIENT_ID ? process.env.PAYPAL_CLIENT_ID.substring(0, 10) + '...' : 'NOT SET',
+    hasSecret: !!process.env.PAYPAL_SECRET,
+    environment: process.env.PAYPAL_ENVIRONMENT || 'NOT SET',
+    appUrl: process.env.APP_URL || 'NOT SET'
+  };
+  console.log('PayPal config check:', config);
+  res.json(config);
+});
+
 // Initialize PayPal plans on startup
 let plansInitialized = false;
 let planIds: Record<string, string> = {};
