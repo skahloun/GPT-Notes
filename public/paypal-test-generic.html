@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Generic Test</title>
+</head>
+<body>
+    <h1>PayPal SDK Test with Generic Sandbox ID</h1>
+    <p>This uses PayPal's generic test client ID</p>
+    <div id="status">Loading PayPal...</div>
+    <div id="paypal-button-container"></div>
+
+    <!-- Using PayPal's generic sandbox client ID -->
+    <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
+    
+    <script>
+        window.onload = function() {
+            if (typeof paypal !== 'undefined') {
+                document.getElementById('status').textContent = 'PayPal loaded successfully with generic test ID!';
+                document.getElementById('status').style.color = 'green';
+                
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: '1.00'
+                                }
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            alert('Transaction completed!');
+                        });
+                    }
+                }).render('#paypal-button-container');
+            } else {
+                document.getElementById('status').textContent = 'PayPal failed to load!';
+                document.getElementById('status').style.color = 'red';
+            }
+        };
+    </script>
+</body>
+</html>
