@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Notes - Pricing (Sandbox)</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .sandbox-banner {
+            background: #f59e0b;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .pricing-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .pricing-card {
+            background: var(--surface-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px);
+        }
+        .pricing-card.featured {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+        .plan-name {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .plan-price {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .plan-price .currency {
+            font-size: 1.5rem;
+            vertical-align: super;
+        }
+        .plan-price .period {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+        .plan-features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+        .select-plan-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .select-plan-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        .select-plan-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .select-plan-btn.selected {
+            background: var(--success);
+        }
+        #paypal-button-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            min-height: 150px;
+            display: none;
+        }
+        .payment-section {
+            background: var(--surface-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+        .payment-section.active {
+            display: block;
+        }
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin: 1rem 0;
+            display: none;
+        }
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin: 1rem 0;
+            display: none;
+        }
+        .loading-spinner {
+            border: 3px solid var(--border-glass);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sandbox-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 2rem;
+        }
+        .sandbox-info h3 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        .test-credentials {
+            background: var(--surface-secondary);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            font-family: monospace;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="sandbox-banner">
+        🧪 SANDBOX MODE - This is for testing only. No real charges will be made.
+    </div>
+
+    <div class="pricing-container">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <h1>Choose Your Plan</h1>
+            <p class="text-secondary">Start with pay-as-you-go or save with a monthly subscription</p>
+        </div>
+
+        <div class="sandbox-info">
+            <h3>📝 Sandbox Test Accounts</h3>
+            <p>Use these test accounts to complete payments:</p>
+            <div class="test-credentials">
+                <strong>Personal Account (Buyer):</strong><br>
+                Email: sb-zuxhm45215481@personal.example.com<br>
+                Password: testpass123<br><br>
+                
+                <strong>Alternative Test Cards:</strong><br>
+                Card: 4111 1111 1111 1111 (Visa)<br>
+                Card: 5555 5555 5555 4444 (Mastercard)<br>
+                Expiry: Any future date<br>
+                CVV: Any 3 digits
+            </div>
+        </div>
+
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3 class="plan-name">Pay as you go</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>2.00
+                    <span class="period">/hour</span>
+                </div>
+                <p class="plan-description">Perfect for occasional use</p>
+                <ul class="plan-features">
+                    <li>No monthly commitment</li>
+                    <li>Pay only for what you use</li>
+                    <li>$10 minimum purchase</li>
+                    <li>Credits never expire</li>
+                    <li>All features included</li>
+                </ul>
+                <button class="select-plan-btn" data-plan="payg">
+                    Add Credits
+                </button>
+            </div>
+
+            <div class="pricing-card featured">
+                <h3 class="plan-name">Student</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>29.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">10 hours per month</p>
+                <ul class="plan-features">
+                    <li>$3.00/hour (save 50%)</li>
+                    <li>10 hours included</li>
+                    <li>Auto-renews monthly</li>
+                    <li>Cancel anytime</li>
+                    <li>All features included</li>
+                </ul>
+                <button class="select-plan-btn" data-plan="student">
+                    Subscribe
+                </button>
+            </div>
+
+            <div class="pricing-card">
+                <h3 class="plan-name">Premium</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>69.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">30 hours per month</p>
+                <ul class="plan-features">
+                    <li>$2.33/hour (save 66%)</li>
+                    <li>30 hours included</li>
+                    <li>Priority processing</li>
+                    <li>Cancel anytime</li>
+                    <li>All features included</li>
+                </ul>
+                <button class="select-plan-btn" data-plan="premium">
+                    Subscribe
+                </button>
+            </div>
+
+            <div class="pricing-card">
+                <h3 class="plan-name">Unlimited</h3>
+                <div class="plan-price">
+                    <span class="currency">$</span>119.99
+                    <span class="period">/month</span>
+                </div>
+                <p class="plan-description">50 hours per month</p>
+                <ul class="plan-features">
+                    <li>$2.40/hour (save 60%)</li>
+                    <li>50 hours included</li>
+                    <li>Team collaboration</li>
+                    <li>API access</li>
+                    <li>Priority support</li>
+                </ul>
+                <button class="select-plan-btn" data-plan="unlimited">
+                    Subscribe
+                </button>
+            </div>
+        </div>
+
+        <div id="payment-section" class="payment-section">
+            <h2 id="payment-title">Complete Your Purchase</h2>
+            <p id="payment-description"></p>
+            
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+            
+            <div id="paypal-button-container"></div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <button id="cancel-payment-btn" class="btn btn-secondary">
+                    Cancel
+                </button>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- PayPal SDK - Sandbox -->
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD&intent=capture&vault=true"></script>
+    
+    <script>
+        let selectedPlan = null;
+        let paypalButtonsRendered = false;
+
+        // Get plan details from API
+        async function fetchPlans() {
+            try {
+                const response = await fetch('/api/paypal/plans');
+                const data = await response.json();
+                return data.plans;
+            } catch (error) {
+                console.error('Failed to fetch plans:', error);
+                return null;
+            }
+        }
+
+        function selectPlan(plan, event) {
+            event.preventDefault();
+            
+            // Update UI
+            document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.textContent = btn.textContent.replace('Selected - ', '');
+            });
+            
+            event.target.classList.add('selected');
+            event.target.textContent = 'Selected - ' + event.target.textContent;
+            
+            selectedPlan = plan;
+            
+            // Show payment section
+            const paymentSection = document.getElementById('payment-section');
+            paymentSection.classList.add('active');
+            
+            // Update payment section content
+            updatePaymentSection(plan);
+            
+            // Render PayPal buttons
+            renderPayPalButtons(plan);
+            
+            // Scroll to payment section
+            paymentSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updatePaymentSection(plan) {
+            const title = document.getElementById('payment-title');
+            const description = document.getElementById('payment-description');
+            
+            if (plan === 'payg') {
+                title.textContent = 'Add Credits';
+                description.textContent = 'Minimum purchase: $10 (5 hours of transcription)';
+            } else {
+                const planNames = {
+                    student: 'Student Plan - $29.99/month',
+                    premium: 'Premium Plan - $69.99/month',
+                    unlimited: 'Unlimited Plan - $119.99/month'
+                };
+                title.textContent = 'Subscribe to ' + planNames[plan];
+                description.textContent = 'You can cancel your subscription anytime from your account settings.';
+            }
+        }
+
+        function renderPayPalButtons(plan) {
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = ''; // Clear existing buttons
+            container.style.display = 'block';
+            
+            if (plan === 'payg') {
+                renderPayAsYouGoButtons();
+            } else {
+                renderSubscriptionButtons(plan);
+            }
+        }
+
+        function renderPayAsYouGoButtons() {
+            paypal.Buttons({
+                createOrder: async function(data, actions) {
+                    showLoading();
+                    try {
+                        const response = await fetch('/api/paypal/create-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                amount: '10.00' // Minimum $10
+                            })
+                        });
+                        
+                        const order = await response.json();
+                        hideLoading();
+                        
+                        if (order.error) {
+                            throw new Error(order.error);
+                        }
+                        
+                        return order.id;
+                    } catch (error) {
+                        hideLoading();
+                        showError('Failed to create order: ' + error.message);
+                        throw error;
+                    }
+                },
+                onApprove: async function(data, actions) {
+                    showLoading();
+                    try {
+                        const response = await fetch('/api/paypal/capture-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                orderId: data.orderID
+                            })
+                        });
+                        
+                        const capture = await response.json();
+                        hideLoading();
+                        
+                        if (capture.error) {
+                            throw new Error(capture.error);
+                        }
+                        
+                        showSuccess('Payment successful! Credits have been added to your account.');
+                        setTimeout(() => {
+                            window.location.href = '/billing';
+                        }, 2000);
+                    } catch (error) {
+                        hideLoading();
+                        showError('Failed to capture payment: ' + error.message);
+                    }
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    showError('Payment failed. Please try again.');
+                },
+                onCancel: function(data) {
+                    showError('Payment cancelled.');
+                }
+            }).render('#paypal-button-container');
+        }
+
+        async function renderSubscriptionButtons(plan) {
+            const plans = await fetchPlans();
+            if (!plans || !plans[plan]) {
+                showError('Failed to load subscription plans. Please refresh and try again.');
+                return;
+            }
+
+            paypal.Buttons({
+                createSubscription: async function(data, actions) {
+                    showLoading();
+                    try {
+                        const response = await fetch('/api/paypal/create-subscription', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({ plan })
+                        });
+                        
+                        const subscription = await response.json();
+                        hideLoading();
+                        
+                        if (subscription.error) {
+                            throw new Error(subscription.error);
+                        }
+                        
+                        return subscription.id;
+                    } catch (error) {
+                        hideLoading();
+                        showError('Failed to create subscription: ' + error.message);
+                        throw error;
+                    }
+                },
+                onApprove: async function(data, actions) {
+                    showLoading();
+                    try {
+                        const response = await fetch('/api/paypal/activate-subscription', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                subscriptionId: data.subscriptionID,
+                                plan: plan
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        hideLoading();
+                        
+                        if (result.error) {
+                            throw new Error(result.error);
+                        }
+                        
+                        showSuccess('Subscription activated! Redirecting to your account...');
+                        setTimeout(() => {
+                            window.location.href = '/billing';
+                        }, 2000);
+                    } catch (error) {
+                        hideLoading();
+                        showError('Failed to activate subscription: ' + error.message);
+                    }
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    showError('Subscription failed. Please try again.');
+                },
+                onCancel: function(data) {
+                    showError('Subscription cancelled.');
+                }
+            }).render('#paypal-button-container');
+        }
+
+        function cancelPayment() {
+            document.getElementById('payment-section').classList.remove('active');
+            document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                btn.textContent = btn.textContent.replace('Selected - ', '');
+            });
+            selectedPlan = null;
+            hideError();
+            hideSuccess();
+        }
+
+        function showLoading() {
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = '<div class="loading-spinner"></div>';
+        }
+
+        function hideLoading() {
+            if (selectedPlan) {
+                renderPayPalButtons(selectedPlan);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            hideSuccess();
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            hideError();
+        }
+
+        function hideSuccess() {
+            document.getElementById('success-message').style.display = 'none';
+        }
+
+        // Add event listeners when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add click handlers to all plan buttons
+            document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                btn.addEventListener('click', (event) => {
+                    const plan = btn.getAttribute('data-plan');
+                    selectPlan(plan, event);
+                });
+            });
+
+            // Add cancel button handler
+            document.getElementById('cancel-payment-btn').addEventListener('click', cancelPayment);
+
+            // Check URL parameters for redirect handling
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('subscription') === 'success') {
+                showSuccess('Subscription activated successfully!');
+            } else if (urlParams.get('subscription') === 'cancelled') {
+                showError('Subscription was cancelled.');
+            } else if (urlParams.get('success') === 'true') {
+                showSuccess('Payment completed successfully!');
+            } else if (urlParams.get('cancelled') === 'true') {
+                showError('Payment was cancelled.');
+            }
+        });
+    </script>
+</body>
+</html>
