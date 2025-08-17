@@ -872,7 +872,21 @@ app.post("/api/purchase-plan", authMiddleware, async (req:any, res) => {
 
 app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
   try {
+    console.log('Fetching billing status for user:', req.user.uid);
+    
     const user = await db.get("SELECT subscription_plan, subscription_status, hours_used_this_month, hours_limit, credits_balance, is_test_account FROM users WHERE id=?", [req.user.uid]);
+    
+    if (!user) {
+      console.error('User not found:', req.user.uid);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('User billing data:', {
+      subscription_plan: user.subscription_plan,
+      subscription_status: user.subscription_status,
+      credits_balance: user.credits_balance,
+      is_test_account: user.is_test_account
+    });
     
     // Special handling for test accounts
     if (user.is_test_account === 1) {
@@ -886,19 +900,24 @@ app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
       });
     } else {
       // Check if user has credits (pay-as-you-go)
-      const hasCredits = user.credits_balance > 0;
+      const creditsBalance = parseFloat(user.credits_balance) || 0;
+      const hasCredits = creditsBalance > 0;
       const plan = user.subscription_plan || (hasCredits ? 'payg' : 'none');
       
-      res.json({
+      const response = {
         plan: plan,
         status: plan === 'payg' && hasCredits ? 'active' : (user.subscription_status || 'inactive'),
-        hoursUsed: user.hours_used_this_month || 0,
-        hoursLimit: user.hours_limit || 0,
-        creditsBalance: user.credits_balance || 0,
+        hoursUsed: parseFloat(user.hours_used_this_month) || 0,
+        hoursLimit: parseFloat(user.hours_limit) || 0,
+        creditsBalance: creditsBalance,
         isTestAccount: false
-      });
+      };
+      
+      console.log('Sending billing response:', response);
+      res.json(response);
     }
   } catch (e: any) {
+    console.error('Error in billing-status endpoint:', e);
     res.status(500).json({ error: e.message });
   }
 });

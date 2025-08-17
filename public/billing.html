@@ -201,10 +201,12 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     if (!token || token === 'demo-token') {
       window.location.href = '/auth.html';
     }
+    
+    console.log('Auth token exists:', !!token);
 
     async function loadBillingInfo() {
       try {
@@ -300,6 +302,11 @@
         document.getElementById('currentPlan').innerHTML = `
           <div class="plan-card">
             <p class="text-error">Failed to load billing information</p>
+            <p class="text-muted mt-2">Error: ${error.message || 'Unknown error'}</p>
+            <div class="action-buttons mt-4">
+              <button class="btn btn-secondary" onclick="location.reload()">Retry</button>
+              <a href="/auth.html" class="btn btn-secondary">Re-login</a>
+            </div>
           </div>
         `;
       }
