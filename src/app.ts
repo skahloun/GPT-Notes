@@ -797,8 +797,8 @@ app.get("/api/sessions", authMiddleware, async (req:any, res) => {
   res.json(rows);
 });
 
-// PayPal routes
-app.use("/api/paypal", paypalRoutes);
+// PayPal routes (with authentication)
+app.use("/api/paypal", authMiddleware, paypalRoutes);
 
 // Legacy payment endpoints (for backward compatibility)
 app.post("/api/subscribe", authMiddleware, async (req:any, res) => {
