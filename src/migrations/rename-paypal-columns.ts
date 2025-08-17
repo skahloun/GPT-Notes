@@ -1,6 +1,4 @@
-import { Database } from '../config/database';
-
-export async function renamePa    yPalColumns(db: Database) {
+export async function renamePayPalColumns(db: any) {
   const queries = [
     // Rename columns in users table
     `ALTER TABLE users RENAME COLUMN paypal_subscription_id TO external_subscription_id`,

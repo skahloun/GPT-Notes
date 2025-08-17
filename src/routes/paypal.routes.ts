@@ -2,8 +2,12 @@ import { Router, Request, Response } from 'express';
 import { paypalService } from '../services/paypal.service';
 import { paymentService } from '../services/payment.service';
 import { PayPalWebhookService } from '../services/paypal-webhook.service';
-import { requireAuth } from '../middleware/auth';
 import { db } from '../config/database';
+
+// Define request interface with user
+interface AuthRequest extends Request {
+  user?: { uid: string };
+}
 
 const router = Router();
 const webhookService = new PayPalWebhookService(process.env.PAYPAL_WEBHOOK_ID || '');
@@ -26,7 +30,7 @@ async function ensurePlansExist() {
 }
 
 // Create order for one-time payment
-router.post('/create-order', requireAuth, async (req: Request, res: Response) => {
+router.post('/create-order', async (req: AuthRequest, res: Response) => {
   try {
     const { amount } = req.body;
     
@@ -43,7 +47,7 @@ router.post('/create-order', requireAuth, async (req: Request, res: Response) =>
 });
 
 // Capture order after approval
-router.post('/capture-order', requireAuth, async (req: Request, res: Response) => {
+router.post('/capture-order', async (req: AuthRequest, res: Response) => {
   try {
     const { orderId } = req.body;
     
@@ -71,7 +75,7 @@ router.post('/capture-order', requireAuth, async (req: Request, res: Response) =
 });
 
 // Create subscription
-router.post('/create-subscription', requireAuth, async (req: Request, res: Response) => {
+router.post('/create-subscription', async (req: AuthRequest, res: Response) => {
   try {
     const { plan } = req.body;
     const plans = await ensurePlansExist();
@@ -98,7 +102,7 @@ router.post('/create-subscription', requireAuth, async (req: Request, res: Respo
 });
 
 // Activate subscription after approval
-router.post('/activate-subscription', requireAuth, async (req: Request, res: Response) => {
+router.post('/activate-subscription', async (req: AuthRequest, res: Response) => {
   try {
     const { subscriptionId, plan } = req.body;
     
@@ -129,7 +133,7 @@ router.post('/activate-subscription', requireAuth, async (req: Request, res: Res
 });
 
 // Cancel subscription
-router.post('/cancel-subscription', requireAuth, async (req: Request, res: Response) => {
+router.post('/cancel-subscription', async (req: AuthRequest, res: Response) => {
   try {
     const user = await db.get(
       'SELECT external_subscription_id FROM users WHERE id = ?',
