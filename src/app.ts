@@ -18,8 +18,8 @@ import { notesToDocText } from "./utils/export-utils";
 import { usageTracker } from "./services/usage-tracker";
 import { db } from "./config/database";
 import { paymentService } from "./services/payment.service";
-import { PayPalWebhookService } from "./services/paypal-webhook.service";
 import { securityHeaders } from "./middleware/security";
+import paypalRoutes from "./routes/paypal.routes";
 
 const app = express();
 const server = http.createServer(app);
@@ -797,11 +797,14 @@ app.get("/api/sessions", authMiddleware, async (req:any, res) => {
   res.json(rows);
 });
 
-// Payment endpoints
+// PayPal routes
+app.use("/api/paypal", paypalRoutes);
+
+// Legacy payment endpoints (for backward compatibility)
 app.post("/api/subscribe", authMiddleware, async (req:any, res) => {
   try {
     const { subscriptionId, plan } = req.body;
-    const result = await paymentService.createSubscription(req.user.uid, plan, subscriptionId, db);
+    const result = await paymentService.activateSubscription(req.user.uid, plan, subscriptionId, db);
     res.json(result);
   } catch (e: any) {
     res.status(400).json({ error: e.message });
@@ -896,37 +899,7 @@ app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
   }
 });
 
-// PayPal Webhook endpoint
-const paypalWebhookService = new PayPalWebhookService(process.env.PAYPAL_WEBHOOK_ID || '');
-
-app.post("/api/paypal-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
-  try {
-    const headers = req.headers as any;
-    const event = JSON.parse(req.body.toString());
-    
-    // Verify webhook signature
-    const isValid = paypalWebhookService.verifyWebhookSignature(
-      headers['paypal-auth-algo'],
-      headers['paypal-cert-url'],
-      headers['paypal-transmission-id'],
-      headers['paypal-transmission-sig'],
-      headers['paypal-transmission-time'],
-      event
-    );
-    
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid signature' });
-    }
-    
-    // Process webhook event
-    await paypalWebhookService.handleWebhookEvent(event, db);
-    
-    res.status(200).json({ received: true });
-  } catch (e: any) {
-    console.error('PayPal webhook error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
+// Note: PayPal webhook is now handled in /api/paypal/webhook route
 
 // Health
 app.get("/api/health", (_, res) => res.json({ ok: true }));

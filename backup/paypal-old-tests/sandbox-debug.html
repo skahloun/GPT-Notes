@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Sandbox Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.secondary {
+            background: #6c757d;
+        }
+        .button.secondary:hover {
+            background: #545b62;
+        }
+        #paypal-button-container {
+            margin: 20px 0;
+            min-height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PayPal Sandbox Debugging Guide</h1>
+        
+        <div class="section warning">
+            <h2>⚠️ Common Sandbox Login Issues</h2>
+            <p>The "Check your info and try again" error often occurs because:</p>
+            <ul>
+                <li>You may need to reset the sandbox account password</li>
+                <li>The sandbox account might be locked or expired</li>
+                <li>You're on the correct sandbox login page (not regular PayPal)</li>
+            </ul>
+        </div>
+
+        <div class="section info">
+            <h2>🔧 Solution Steps</h2>
+            <ol>
+                <li><strong>Reset Sandbox Password:</strong>
+                    <ul>
+                        <li>Go to <a href="https://developer.paypal.com/dashboard/accounts" target="_blank">PayPal Developer Dashboard</a></li>
+                        <li>Find your personal sandbox account: <code>sb-3za1d45220243@personal.example.com</code></li>
+                        <li>Click the "..." menu and select "View/Edit account"</li>
+                        <li>Click "Change password" and set a new password</li>
+                        <li>Make sure to save the new password!</li>
+                    </ul>
+                </li>
+                <li><strong>Alternative: Create New Test Account:</strong>
+                    <ul>
+                        <li>In the Developer Dashboard, click "Create account"</li>
+                        <li>Select "Personal" account type</li>
+                        <li>Set a simple password you'll remember</li>
+                        <li>Use the new account for testing</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Test PayPal Integration</h2>
+            <p>Once you've reset the password or created a new account, test here:</p>
+            
+            <button id="load-simple" class="button">Test with Simple Sandbox</button>
+            <button id="load-your-sandbox" class="button secondary">Test with Your Sandbox</button>
+            
+            <div id="status" style="margin: 20px 0; padding: 10px; display: none;"></div>
+            <div id="paypal-button-container"></div>
+        </div>
+
+        <div class="section success">
+            <h2>✅ Alternative Testing Method</h2>
+            <p>If sandbox accounts continue to have issues, you can:</p>
+            <ul>
+                <li>Use the generic sandbox by clicking "Pay with Debit or Credit Card" instead of logging in</li>
+                <li>This bypasses the need for sandbox account credentials</li>
+                <li>Use any test credit card number like: <code>4111 1111 1111 1111</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.className = 'section ' + type;
+            status.innerHTML = message;
+        }
+
+        function loadPayPal(clientId, label) {
+            // Clear previous PayPal instance
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = '';
+            
+            // Remove existing PayPal script
+            const existingScript = document.querySelector('script[src*="paypal.com/sdk"]');
+            if (existingScript) {
+                existingScript.remove();
+            }
+            
+            showStatus(`Loading PayPal with ${label}...`, 'info');
+            
+            const script = document.createElement('script');
+            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+            
+            script.onload = function() {
+                showStatus(`PayPal loaded! Rendering button...`, 'success');
+                
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: {
+                                    value: '5.00'
+                                },
+                                description: 'Test Sandbox Payment'
+                            }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            showStatus(`✅ Success! Payment completed by ${details.payer.name.given_name}`, 'success');
+                            console.log('Transaction details:', details);
+                        });
+                    },
+                    onCancel: function(data) {
+                        showStatus('Payment cancelled', 'warning');
+                    },
+                    onError: function(err) {
+                        showStatus(`Error: ${err.message}`, 'warning');
+                        console.error('PayPal error:', err);
+                    }
+                }).render('#paypal-button-container');
+            };
+            
+            script.onerror = function() {
+                showStatus('Failed to load PayPal SDK', 'warning');
+            };
+            
+            document.head.appendChild(script);
+        }
+
+        document.getElementById('load-simple').addEventListener('click', function() {
+            loadPayPal('sb', 'generic sandbox');
+        });
+
+        document.getElementById('load-your-sandbox').addEventListener('click', function() {
+            loadPayPal('Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf', 'your sandbox client ID');
+        });
+    </script>
+</body>
+</html>

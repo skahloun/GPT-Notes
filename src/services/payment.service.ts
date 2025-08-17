@@ -15,7 +15,7 @@ export class PaymentService {
     payg: { name: 'Pay-as-you-go', price: 2.00, hours: 0, type: 'payg' }
   };
 
-  async createSubscription(userId: string, plan: string, paypalSubscriptionId: string, db: any) {
+  async activateSubscription(userId: string, plan: string, subscriptionId: string, db: any) {
     const planDetails = this.plans[plan];
     if (!planDetails) throw new Error('Invalid plan');
 
@@ -23,22 +23,22 @@ export class PaymentService {
     
     // Record payment
     await db.run(`
-      INSERT INTO payments (id, userId, type, amount, paypal_subscription_id, status)
+      INSERT INTO payments (id, userId, type, amount, external_subscription_id, status)
       VALUES (?, ?, ?, ?, ?, ?)
-    `, [paymentId, userId, 'subscription', planDetails.price, paypalSubscriptionId, 'active']);
+    `, [paymentId, userId, 'subscription', planDetails.price, subscriptionId, 'active']);
 
     // Update user subscription
     await db.run(`
       UPDATE users SET 
         subscription_plan = ?,
         subscription_status = 'active',
-        paypal_subscription_id = ?,
+        external_subscription_id = ?,
         hours_limit = ?,
         hours_used_this_month = 0,
         billing_cycle_start = CURRENT_TIMESTAMP,
         tier = 'premium'
       WHERE id = ?
-    `, [plan, paypalSubscriptionId, planDetails.hours, userId]);
+    `, [plan, subscriptionId, planDetails.hours, userId]);
 
     return { success: true, plan: planDetails };
   }
@@ -48,7 +48,7 @@ export class PaymentService {
     
     // Record payment
     await db.run(`
-      INSERT INTO payments (id, userId, type, amount, paypal_order_id, status)
+      INSERT INTO payments (id, userId, type, amount, external_order_id, status)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [paymentId, userId, 'credit', amount, orderId, 'completed']);
 

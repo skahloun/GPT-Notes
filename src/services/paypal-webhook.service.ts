@@ -1,5 +1,5 @@
-import crypto from 'crypto';
 import { paymentService } from './payment.service';
+import { paypalService } from './paypal.service';
 
 export class PayPalWebhookService {
   private webhookId: string;
@@ -8,18 +8,11 @@ export class PayPalWebhookService {
     this.webhookId = webhookId;
   }
 
-  verifyWebhookSignature(
-    authAlgo: string,
-    certUrl: string,
-    transmissionId: string,
-    transmissionSig: string,
-    transmissionTime: string,
-    webhookEvent: any
-  ): boolean {
-    // For production, implement PayPal signature verification
-    // This is a placeholder - actual implementation requires PayPal SDK
-    console.log('PayPal webhook signature verification not implemented');
-    return true; // WARNING: Always verify in production!
+  async verifyWebhookSignature(
+    headers: any,
+    body: any
+  ): Promise<boolean> {
+    return await paypalService.verifyWebhookSignature(headers, body, this.webhookId);
   }
 
   async handleWebhookEvent(event: any, db: any) {
@@ -65,7 +58,7 @@ export class PayPalWebhookService {
       UPDATE users 
       SET subscription_status = 'active',
           billing_cycle_start = CURRENT_TIMESTAMP
-      WHERE paypal_subscription_id = ?
+      WHERE external_subscription_id = ?
     `, [subscriptionId]);
     
     console.log('Subscription activated:', subscriptionId);
@@ -78,7 +71,7 @@ export class PayPalWebhookService {
     await db.run(`
       UPDATE users 
       SET subscription_status = 'cancelled'
-      WHERE paypal_subscription_id = ?
+      WHERE external_subscription_id = ?
     `, [subscriptionId]);
     
     console.log('Subscription cancelled:', subscriptionId);
@@ -93,7 +86,7 @@ export class PayPalWebhookService {
       SET subscription_status = 'expired',
           subscription_plan = NULL,
           hours_limit = 0
-      WHERE paypal_subscription_id = ?
+      WHERE external_subscription_id = ?
     `, [subscriptionId]);
     
     console.log('Subscription expired:', subscriptionId);
