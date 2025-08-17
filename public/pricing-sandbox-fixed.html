@@ -353,10 +353,25 @@
         let selectedPlan = null;
         let paypalButtonsRendered = false;
 
+        // Get auth token from localStorage
+        function getAuthToken() {
+            return localStorage.getItem('authToken') || localStorage.getItem('token');
+        }
+
         // Get plan details from API
         async function fetchPlans() {
             try {
-                const response = await fetch('/api/paypal/plans');
+                const token = getAuthToken();
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/paypal/plans', {
+                    headers: headers
+                });
                 const data = await response.json();
                 return data.plans;
             } catch (error) {
@@ -433,11 +448,17 @@
                 createOrder: async function(data, actions) {
                     showLoading();
                     try {
+                        const token = getAuthToken();
+                        const headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                        
                         const response = await fetch('/api/paypal/create-order', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: headers,
                             credentials: 'include',
                             body: JSON.stringify({
                                 amount: '10.00' // Minimum $10
@@ -461,11 +482,17 @@
                 onApprove: async function(data, actions) {
                     showLoading();
                     try {
+                        const token = getAuthToken();
+                        const headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                        
                         const response = await fetch('/api/paypal/capture-order', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: headers,
                             credentials: 'include',
                             body: JSON.stringify({
                                 orderId: data.orderID
@@ -514,11 +541,17 @@
                 createSubscription: async function(data, actions) {
                     showLoading();
                     try {
+                        const token = getAuthToken();
+                        const headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                        
                         const response = await fetch('/api/paypal/create-subscription', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: headers,
                             credentials: 'include',
                             body: JSON.stringify({ plan })
                         });
@@ -540,11 +573,17 @@
                 onApprove: async function(data, actions) {
                     showLoading();
                     try {
+                        const token = getAuthToken();
+                        const headers = {
+                            'Content-Type': 'application/json'
+                        };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                        
                         const response = await fetch('/api/paypal/activate-subscription', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                            headers: headers,
                             credentials: 'include',
                             body: JSON.stringify({
                                 subscriptionId: data.subscriptionID,
@@ -624,6 +663,15 @@
 
         // Add event listeners when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
+            // Check if user is authenticated
+            const token = getAuthToken();
+            if (!token) {
+                showError('Please log in to access pricing plans.');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+                return;
+            }
             // Add click handlers to all plan buttons
             document.querySelectorAll('.select-plan-btn').forEach(btn => {
                 btn.addEventListener('click', (event) => {
