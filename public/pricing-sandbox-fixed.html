@@ -182,9 +182,12 @@
             <h3>📝 Sandbox Test Accounts</h3>
             <p>Use these test accounts to complete payments:</p>
             <div class="test-credentials">
-                <strong>Personal Account (Buyer):</strong><br>
-                Email: sb-zuxhm45215481@personal.example.com<br>
-                Password: testpass123<br><br>
+                <strong>Business Account (Merchant):</strong><br>
+                Email: sb-oxdnm45215491@business.example.com<br>
+                Password: Use your sandbox password<br><br>
+                
+                <strong>Note:</strong> You'll also need a sandbox buyer account.<br>
+                Create one at developer.paypal.com → Sandbox → Accounts<br><br>
                 
                 <strong>Alternative Test Cards:</strong><br>
                 Card: 4111 1111 1111 1111 (Visa)<br>
@@ -294,8 +297,7 @@
     </div>
 
     <!-- PayPal SDK - Sandbox -->
-    <!-- Note: This might be a production client ID, not sandbox -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AU0fYruw5CfR0SEeMTOB1yTqE1C8EQyiYGper0H2_S4UA1xTbCA1VjodXGqrH4tv3Ge85fDw4XA7lVa1&currency=USD&intent=capture" 
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAqna7nZFTc6fluTylhHMYd3g_hJIpMY-R6NKHrXtii1&currency=USD&intent=capture&vault=true" 
             onerror="handlePayPalLoadError()"></script>
     
     <script>
