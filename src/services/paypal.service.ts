@@ -101,8 +101,8 @@ export class PayPalService {
             brandName: 'Class Notes',
             landingPage: OrderApplicationContextLandingPage.Login,
             userAction: OrderApplicationContextUserAction.PayNow,
-            returnUrl: `${process.env.APP_URL}/billing?success=true`,
-            cancelUrl: `${process.env.APP_URL}/billing?cancelled=true`
+            returnUrl: `${process.env.APP_URL}/billing.html?success=true`,
+            cancelUrl: `${process.env.APP_URL}/billing.html?cancelled=true`
           }
         }
       };
