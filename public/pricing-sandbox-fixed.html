@@ -446,7 +446,6 @@
             
             paypal.Buttons({
                 createOrder: async function(data, actions) {
-                    showLoading();
                     try {
                         const token = getAuthToken();
                         const headers = {
@@ -465,8 +464,12 @@
                             })
                         });
                         
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || `HTTP ${response.status}`);
+                        }
+                        
                         const order = await response.json();
-                        hideLoading();
                         
                         if (order.error) {
                             throw new Error(order.error);
@@ -474,8 +477,10 @@
                         
                         return order.id;
                     } catch (error) {
-                        hideLoading();
+                        console.error('Create order error:', error);
                         showError('Failed to create order: ' + error.message);
+                        // Re-render the buttons after error
+                        setTimeout(() => renderPayAsYouGoButtons(), 2000);
                         throw error;
                     }
                 },
@@ -630,13 +635,14 @@
 
         function showLoading() {
             const container = document.getElementById('paypal-button-container');
-            container.innerHTML = '<div class="loading-spinner"></div>';
+            if (container) {
+                container.innerHTML = '<div class="loading-spinner"></div>';
+            }
         }
 
         function hideLoading() {
-            if (selectedPlan) {
-                renderPayPalButtons(selectedPlan);
-            }
+            // Don't re-render buttons during loading state
+            // The buttons will be re-rendered if needed after success/error
         }
 
         function showError(message) {

@@ -34,15 +34,36 @@ router.post('/create-order', async (req: AuthRequest, res: Response) => {
   try {
     const { amount } = req.body;
     
+    console.log('Create order request:', { 
+      amount, 
+      userId: req.user?.uid,
+      hasUser: !!req.user 
+    });
+    
+    if (!req.user?.uid) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
     if (!amount || parseFloat(amount) < 10) {
       return res.status(400).json({ error: 'Minimum payment is $10' });
     }
 
-    const order = await paypalService.createOrder(amount, req.user!.uid);
+    const order = await paypalService.createOrder(amount, req.user.uid);
     res.json(order);
   } catch (error: any) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ error: error.message || 'Failed to create order' });
+    console.error('Route error creating order:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
+    // Return appropriate status code based on error
+    if (error.message.includes('authentication')) {
+      res.status(401).json({ error: error.message });
+    } else if (error.message.includes('Invalid')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message || 'Failed to create order' });
+    }
   }
 });
 

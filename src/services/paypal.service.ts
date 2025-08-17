@@ -42,10 +42,27 @@ export class PayPalService {
       ? Environment.Production 
       : Environment.Sandbox;
 
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error('PayPal credentials missing:', {
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        environment: process.env.PAYPAL_ENVIRONMENT
+      });
+      throw new Error('PayPal credentials not configured');
+    }
+
+    console.log('Initializing PayPal service:', {
+      environment: environment === Environment.Production ? 'Production' : 'Sandbox',
+      clientIdPrefix: clientId.substring(0, 10) + '...'
+    });
+
     this.client = new Client({
       clientCredentialsAuthCredentials: {
-        oAuthClientId: process.env.PAYPAL_CLIENT_ID || '',
-        oAuthClientSecret: process.env.PAYPAL_SECRET || ''
+        oAuthClientId: clientId,
+        oAuthClientSecret: clientSecret
       },
       environment: environment,
       timeout: 30000
@@ -59,7 +76,9 @@ export class PayPalService {
    */
   async createOrder(amount: string, userId: string) {
     try {
-      const order = await this.ordersController.createOrder({
+      console.log('Creating PayPal order:', { amount, userId });
+      
+      const orderRequest = {
         prefer: 'return=representation',
         body: {
           intent: CheckoutPaymentIntent.Capture,
@@ -80,19 +99,38 @@ export class PayPalService {
             cancelUrl: `${process.env.APP_URL}/billing?cancelled=true`
           }
         }
-      });
+      };
+      
+      console.log('Order request:', JSON.stringify(orderRequest, null, 2));
+      
+      const order = await this.ordersController.createOrder(orderRequest);
 
       if (!order.result.id) {
         throw new Error('Order ID not returned');
       }
 
+      console.log('PayPal order created successfully:', order.result.id);
+
       return {
         id: order.result.id,
         status: order.result.status
       };
-    } catch (error) {
-      console.error('Error creating PayPal order:', error);
-      throw new Error('Failed to create payment order');
+    } catch (error: any) {
+      console.error('Error creating PayPal order:', {
+        message: error.message,
+        response: error.response,
+        statusCode: error.statusCode,
+        stack: error.stack
+      });
+      
+      // Return more specific error message
+      if (error.statusCode === 401) {
+        throw new Error('PayPal authentication failed. Check credentials.');
+      } else if (error.statusCode === 400) {
+        throw new Error('Invalid PayPal request. Check amount and parameters.');
+      } else {
+        throw new Error(`PayPal error: ${error.message || 'Failed to create payment order'}`);
+      }
     }
   }
 
