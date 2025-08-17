@@ -885,9 +885,13 @@ app.get("/api/billing-status", authMiddleware, async (req:any, res) => {
         isTestAccount: true
       });
     } else {
+      // Check if user has credits (pay-as-you-go)
+      const hasCredits = user.credits_balance > 0;
+      const plan = user.subscription_plan || (hasCredits ? 'payg' : 'none');
+      
       res.json({
-        plan: user.subscription_plan || 'none',
-        status: user.subscription_status || 'inactive',
+        plan: plan,
+        status: plan === 'payg' && hasCredits ? 'active' : (user.subscription_status || 'inactive'),
         hoursUsed: user.hours_used_this_month || 0,
         hoursLimit: user.hours_limit || 0,
         creditsBalance: user.credits_balance || 0,

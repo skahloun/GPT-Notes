@@ -62,7 +62,8 @@ export class PaymentService {
       await db.run(`
         UPDATE users SET 
           credits_balance = credits_balance + ?,
-          tier = 'payg'
+          tier = 'payg',
+          subscription_plan = 'payg'
         WHERE id = ?
       `, [hours, userId]);
       
