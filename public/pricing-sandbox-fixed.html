@@ -294,7 +294,58 @@
     </div>
 
     <!-- PayPal SDK - Sandbox -->
-    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD&intent=capture&vault=true"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUTMJyGEvJRtJuDfx1nVz4JfnjJXqgXmjJmKlNVp-FJQhOdmQm8oNxBxUIbtf&currency=USD&intent=capture&vault=true" 
+            onerror="handlePayPalLoadError()"></script>
+    
+    <script>
+        // Handle PayPal SDK load failure
+        function handlePayPalLoadError() {
+            console.error('PayPal SDK failed to load');
+            document.addEventListener('DOMContentLoaded', () => {
+                showPayPalError();
+            });
+        }
+
+        function showPayPalError() {
+            const container = document.getElementById('paypal-button-container');
+            if (container) {
+                container.innerHTML = `
+                    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 1.5rem; border-radius: 8px; text-align: center;">
+                        <h3 style="color: #f59e0b; margin-bottom: 1rem;">⚠️ PayPal Could Not Load</h3>
+                        <p style="margin-bottom: 1rem;">PayPal is being blocked. This is usually caused by:</p>
+                        <ul style="text-align: left; list-style: none; padding: 0;">
+                            <li>• Ad blockers (uBlock Origin, AdBlock Plus, etc.)</li>
+                            <li>• Privacy extensions (Privacy Badger, etc.)</li>
+                            <li>• Brave Browser shields</li>
+                            <li>• Firefox Enhanced Tracking Protection</li>
+                        </ul>
+                        <div style="margin-top: 1.5rem;">
+                            <p style="font-weight: bold;">To fix this:</p>
+                            <ol style="text-align: left; margin: 1rem 0;">
+                                <li>Disable ad blockers for this site</li>
+                                <li>Refresh the page</li>
+                                <li>Or use the alternative payment method below</li>
+                            </ol>
+                        </div>
+                        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <h4>Alternative Payment Method:</h4>
+                            <p>Send payment directly via PayPal to:</p>
+                            <p style="font-size: 1.25rem; font-weight: bold; margin: 1rem 0;">skahloun@gmail.com</p>
+                            <p style="font-size: 0.875rem;">Include your email in the payment note for account activation.</p>
+                        </div>
+                    </div>
+                `;
+                container.style.display = 'block';
+            }
+        }
+
+        // Check if PayPal loaded after a delay
+        setTimeout(() => {
+            if (typeof paypal === 'undefined') {
+                handlePayPalLoadError();
+            }
+        }, 3000);
+    </script>
     
     <script>
         let selectedPlan = null;
@@ -371,6 +422,11 @@
         }
 
         function renderPayAsYouGoButtons() {
+            if (typeof paypal === 'undefined') {
+                showPayPalError();
+                return;
+            }
+            
             paypal.Buttons({
                 createOrder: async function(data, actions) {
                     showLoading();
@@ -441,6 +497,11 @@
         }
 
         async function renderSubscriptionButtons(plan) {
+            if (typeof paypal === 'undefined') {
+                showPayPalError();
+                return;
+            }
+            
             const plans = await fetchPlans();
             if (!plans || !plans[plan]) {
                 showError('Failed to load subscription plans. Please refresh and try again.');
