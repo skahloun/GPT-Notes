@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple PayPal Test</title>
+</head>
+<body>
+    <h1>Simple PayPal SDK Test</h1>
+    <p>Check the browser console for errors</p>
+    <div id="status">Loading PayPal...</div>
+    <div id="paypal-button-container"></div>
+
+    <!-- Use the exact client ID from your PayPal dashboard -->
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAqna7nZFTc6fluTylhHMYd3g_hJIpMY-R6NKHrXtii1"></script>
+    
+    <script>
+        // Check if PayPal loaded
+        if (typeof paypal !== 'undefined') {
+            document.getElementById('status').textContent = 'PayPal loaded successfully!';
+            document.getElementById('status').style.color = 'green';
+            
+            // Try to render a simple button
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: '1.00'
+                            }
+                        }]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        alert('Transaction completed!');
+                    });
+                }
+            }).render('#paypal-button-container');
+        } else {
+            document.getElementById('status').textContent = 'PayPal failed to load!';
+            document.getElementById('status').style.color = 'red';
+        }
+    </script>
+</body>
+</html>

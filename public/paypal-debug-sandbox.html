@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Sandbox Debug</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .debug-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--surface-glass);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-glass);
+        }
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+        }
+        .status.success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--error);
+        }
+        .client-id {
+            font-family: monospace;
+            background: var(--surface-secondary);
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+            word-break: break-all;
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>PayPal Sandbox Debug</h1>
+        
+        <div class="test-section">
+            <h2>Test 1: Basic SDK Load</h2>
+            <p>Testing with your sandbox client ID</p>
+            <div class="client-id">Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAqna7nZFTc6fluTylhHMYd3g_hJIpMY-R6NKHrXtii1</div>
+            <div id="test1-status" class="status">Loading...</div>
+            <div id="paypal-button-1"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 2: Manual SDK Load</h2>
+            <p>Load SDK with different parameters</p>
+            <button onclick="loadPayPalManually()" class="btn btn-primary">Load PayPal SDK Manually</button>
+            <div id="test2-status" class="status">Click button to test</div>
+            <div id="paypal-button-2"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test 3: API Validation</h2>
+            <p>Test PayPal API endpoints directly</p>
+            <button onclick="testAPI()" class="btn btn-primary">Test API</button>
+            <div id="test3-status" class="status">Click button to test</div>
+        </div>
+
+        <div class="test-section">
+            <h2>Debug Information</h2>
+            <pre id="debug-info"></pre>
+        </div>
+    </div>
+
+    <!-- Test 1: Try loading with basic parameters -->
+    <script>
+        const clientId = 'Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAqna7nZFTc6fluTylhHMYd3g_hJIpMY-R6NKHrXtii1';
+        
+        // Debug info
+        document.getElementById('debug-info').textContent = JSON.stringify({
+            clientIdLength: clientId.length,
+            clientIdPrefix: clientId.substring(0, 10),
+            currentUrl: window.location.href,
+            timestamp: new Date().toISOString()
+        }, null, 2);
+
+        // Test 1: Basic load
+        const script1 = document.createElement('script');
+        script1.src = `https://www.paypal.com/sdk/js?client-id=${clientId}`;
+        script1.onload = () => {
+            document.getElementById('test1-status').className = 'status success';
+            document.getElementById('test1-status').textContent = 'PayPal SDK loaded successfully!';
+            
+            if (typeof paypal !== 'undefined') {
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{
+                                amount: { value: '1.00' }
+                            }]
+                        });
+                    }
+                }).render('#paypal-button-1');
+            }
+        };
+        script1.onerror = (error) => {
+            document.getElementById('test1-status').className = 'status error';
+            document.getElementById('test1-status').textContent = 'Failed to load PayPal SDK: ' + error;
+        };
+        document.head.appendChild(script1);
+
+        // Test 2: Manual load with different parameters
+        function loadPayPalManually() {
+            const script2 = document.createElement('script');
+            // Try with minimal parameters
+            script2.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD`;
+            script2.onload = () => {
+                document.getElementById('test2-status').className = 'status success';
+                document.getElementById('test2-status').textContent = 'Manual load successful!';
+            };
+            script2.onerror = () => {
+                document.getElementById('test2-status').className = 'status error';
+                document.getElementById('test2-status').textContent = 'Manual load failed!';
+            };
+            document.head.appendChild(script2);
+        }
+
+        // Test 3: API test
+        async function testAPI() {
+            const status = document.getElementById('test3-status');
+            status.textContent = 'Testing API...';
+            
+            try {
+                // Test if we can reach our own API
+                const response = await fetch('/api/paypal/plans');
+                const data = await response.json();
+                
+                status.className = 'status success';
+                status.textContent = 'API test successful! Plans: ' + JSON.stringify(data);
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = 'API test failed: ' + error.message;
+            }
+        }
+
+        // Listen for any PayPal errors
+        window.addEventListener('error', (event) => {
+            if (event.filename && event.filename.includes('paypal')) {
+                console.error('PayPal error detected:', event);
+                document.getElementById('debug-info').textContent += '\n\nPayPal Error: ' + event.message;
+            }
+        });
+    </script>
+</body>
+</html>
