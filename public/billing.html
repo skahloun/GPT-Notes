@@ -304,11 +304,15 @@
             <p class="text-error">Failed to load billing information</p>
             <p class="text-muted mt-2">Error: ${error.message || 'Unknown error'}</p>
             <div class="action-buttons mt-4">
-              <button class="btn btn-secondary" onclick="location.reload()">Retry</button>
+              <button class="btn btn-secondary" id="retryBtn">Retry</button>
               <a href="/auth.html" class="btn btn-secondary">Re-login</a>
             </div>
           </div>
         `;
+        // Add event listener after creating the button
+        document.getElementById('retryBtn').addEventListener('click', () => {
+          window.location.reload();
+        });
       }
     }
 
