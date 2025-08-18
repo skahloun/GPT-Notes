@@ -690,6 +690,10 @@ updateButtonStates();
 checkGoogleAuthStatus();
 updateUserInfo();
 
+// Add event listeners for buttons (avoid inline handlers due to CSP)
+document.getElementById('billingBtn')?.addEventListener('click', viewBilling);
+document.getElementById('signOutBtn')?.addEventListener('click', logout);
+
 // Handle floating label for class title input
 const classTitleInput = document.getElementById('classTitle');
 if (classTitleInput) {
