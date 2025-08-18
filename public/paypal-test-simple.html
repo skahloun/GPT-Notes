@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal Test - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        #paypal-button-container {
+            margin-top: 30px;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple PayPal Test</h1>
+    
+    <div class="info">
+        <p>This is a simple test page for PayPal integration.</p>
+        <p>Client ID: Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAgna7nZFTc6ffuTylhHMYd3g_hJlpMY-R6NKHrXtii1</p>
+        <p>Amount: $10.00</p>
+    </div>
+
+    <div id="paypal-button-container"></div>
+
+    <div id="result"></div>
+
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAgna7nZFTc6ffuTylhHMYd3g_hJlpMY-R6NKHrXtii1&currency=USD"></script>
+    
+    <script>
+        // Simple PayPal button implementation
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '10.00'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    document.getElementById('result').innerHTML = 
+                        '<h3>Payment Successful!</h3>' +
+                        '<p>Transaction ID: ' + details.id + '</p>' +
+                        '<p>Payer: ' + details.payer.name.given_name + '</p>';
+                });
+            },
+            onError: function(err) {
+                console.error('PayPal Error:', err);
+                document.getElementById('result').innerHTML = 
+                    '<h3>Error</h3><p>' + err.message + '</p>';
+            }
+        }).render('#paypal-button-container');
+    </script>
+</body>
+</html>
