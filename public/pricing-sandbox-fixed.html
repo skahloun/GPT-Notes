@@ -306,6 +306,7 @@
             document.addEventListener('DOMContentLoaded', () => {
                 showPayPalError();
             });
+            */
         }
 
         function showPayPalError() {
@@ -550,9 +551,32 @@
                 isRenderingButtons = false;
                 console.error('Failed to render PayPal buttons:', err);
             });
+            */
         }
 
         async function renderSubscriptionButtons(plan) {
+            // Temporarily disable subscriptions until properly implemented
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <h3 style="color: #f59e0b; margin-bottom: 1rem;">⚠️ Subscriptions Coming Soon</h3>
+                    <p style="margin-bottom: 1rem;">Monthly subscription plans are currently being set up.</p>
+                    <p style="margin-bottom: 2rem;">For now, please use the Pay-as-you-go option to add credits.</p>
+                    <button class="btn btn-primary" id="choosePaygBtn">
+                        Choose Pay-as-you-go
+                    </button>
+                </div>
+            `;
+            isRenderingButtons = false;
+            
+            // Add event listener for the button
+            document.getElementById('choosePaygBtn')?.addEventListener('click', () => {
+                selectPlan('payg', { target: document.querySelector('[data-plan="payg"]'), preventDefault: () => {} });
+            });
+            
+            return;
+            
+            /* Original subscription code - to be re-enabled when subscriptions are ready
             if (typeof paypal === 'undefined') {
                 showPayPalError();
                 isRenderingButtons = false;
@@ -650,6 +674,7 @@
                 isRenderingButtons = false;
                 console.error('Failed to render PayPal buttons:', err);
             });
+            */
         }
 
         function cancelPayment() {
