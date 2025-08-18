@@ -296,7 +296,7 @@
     </div>
 
     <!-- PayPal SDK - Sandbox -->
-    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAgna7nZFTc6ffuTylhHMYd3g_hJlpMY-R6NKHrXtii1&currency=USD&intent=capture&vault=true" 
+    <script src="https://www.paypal.com/sdk/js?client-id=Abqc63iR5d0zwnB5KJskUNru9nxkVXiWo6OZwAgna7nZFTc6ffuTylhHMYd3g_hJlpMY-R6NKHrXtii1&currency=USD&intent=capture" 
             onerror="handlePayPalLoadError()"></script>
     
     <script>
@@ -461,6 +461,8 @@
                 isRenderingButtons = false;
                 return;
             }
+            
+            console.log('Rendering PayPal buttons...');
             
             paypal.Buttons({
                 createOrder: async function(data, actions) {
