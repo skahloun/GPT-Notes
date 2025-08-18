@@ -468,12 +468,16 @@
                 createOrder: async function(data, actions) {
                     try {
                         const token = getAuthToken();
+                        console.log('Auth token exists:', !!token);
+                        
                         const headers = {
                             'Content-Type': 'application/json'
                         };
                         if (token) {
                             headers['Authorization'] = `Bearer ${token}`;
                         }
+                        
+                        console.log('Creating order with amount: $10.00');
                         
                         const response = await fetch('/api/paypal/create-order', {
                             method: 'POST',
@@ -491,8 +495,14 @@
                         
                         const order = await response.json();
                         
+                        console.log('Order created:', order);
+                        
                         if (order.error) {
                             throw new Error(order.error);
+                        }
+                        
+                        if (!order.id) {
+                            throw new Error('No order ID returned');
                         }
                         
                         return order.id;
