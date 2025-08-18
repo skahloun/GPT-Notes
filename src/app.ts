@@ -26,7 +26,8 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws/audio" });
 
 // Apply security headers (including CSP for PayPal)
-app.use(securityHeaders);
+// Temporarily disabled to avoid CSP conflicts with nginx
+// app.use(securityHeaders);
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "20mb" }));
